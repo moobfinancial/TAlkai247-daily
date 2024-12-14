@@ -21,6 +21,9 @@ export function VoiceDetailsModal({ voice, isOpen, onClose, providers }: VoiceDe
           <DialogTitle className="text-2xl font-semibold text-white">
             Voice Details: {voice.name}
           </DialogTitle>
+          <p className="text-sm text-gray-400">
+            View and manage voice settings
+          </p>
         </DialogHeader>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
           <div>
