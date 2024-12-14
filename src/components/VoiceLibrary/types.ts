@@ -1,5 +1,5 @@
-export type Voice = {
-  id: number;
+export interface Voice {
+  id: number | string;
   name: string;
   gender: string;
   nationality: string;
@@ -8,9 +8,13 @@ export type Voice = {
   traits: string[];
   isCloned?: boolean;
   audioUrl?: string;
+  preview_url?: string;
+  eleven_labs_id?: string;
+  category?: string;
+  available_for_tiers?: string[];
 };
 
-export type Provider = {
+export interface Provider {
   name: string;
   status: "Included" | "Premium";
   languages: string[];
