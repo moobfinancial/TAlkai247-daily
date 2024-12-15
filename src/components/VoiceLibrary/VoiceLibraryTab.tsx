@@ -140,15 +140,14 @@ export default function VoiceLibraryTab() {
           formattedCartesiaVoices = cartesiaVoices.map((voice) => ({
             id: voice.id,
             name: voice.name,
-            gender: voice.gender,
+            gender: voice.gender || "Not specified",
             nationality: "Not specified",
-            language: voice.language,
+            language: voice.language || "English",
             provider: "Cartesia",
             traits: [
               voice.description || "",
               voice.category ? `Category: ${voice.category}` : "",
             ].filter(Boolean),
-            preview_url: voice.preview_url,
             cartesia_id: voice.id
           }));
         } catch (error) {

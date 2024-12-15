@@ -104,7 +104,7 @@ export function VoiceCard({ voice, onSelect }: VoiceCardProps) {
             <h3 className="text-lg font-semibold text-white">{voice.name}</h3>
             <span className="text-sm text-gray-400">{voice.nationality}</span>
           </div>
-          <Badge variant={voice.provider === "ElevenLabs" ? "secondary" : "destructive"}>
+          <Badge variant={voice.provider === "Cartesia" ? "secondary" : "destructive"}>
             {voice.provider}
           </Badge>
         </div>
@@ -116,16 +116,16 @@ export function VoiceCard({ voice, onSelect }: VoiceCardProps) {
           )}
           <div className="flex items-center gap-2">
             <p className="text-xs text-gray-500">
-              ID: {voice.eleven_labs_id || voice.deepgram_id || voice.playht_id || voice.cartesia_id || 'N/A'}
+              ID: {voice.cartesia_id || voice.eleven_labs_id || voice.deepgram_id || voice.playht_id || 'N/A'}
             </p>
-            {(voice.eleven_labs_id || voice.deepgram_id || voice.playht_id || voice.cartesia_id) && (
+            {(voice.cartesia_id || voice.eleven_labs_id || voice.deepgram_id || voice.playht_id) && (
               <Button
                 size="sm"
                 variant="ghost"
                 className="h-6 p-1"
                 onClick={(e) => {
                   e.stopPropagation();
-                  const id = voice.eleven_labs_id || voice.deepgram_id || voice.playht_id || voice.cartesia_id;
+                  const id = voice.cartesia_id || voice.eleven_labs_id || voice.deepgram_id || voice.playht_id;
                   navigator.clipboard.writeText(id!);
                   toast({
                     title: "Copied!",
@@ -160,6 +160,8 @@ export function VoiceCard({ voice, onSelect }: VoiceCardProps) {
               e.stopPropagation();
               handlePreview();
             }}
+            disabled={voice.provider === "Cartesia"}
+            title={voice.provider === "Cartesia" ? "Preview not available for Cartesia voices" : ""}
           >
             {isPlaying ? (
               <><PauseCircle className="w-4 h-4 mr-2" /> Pause</>
