@@ -20,7 +20,7 @@ const port = process.env.PORT || 3000;
 app.use(cors({
   origin: ['http://localhost:5173', 'http://localhost:3000'],
   methods: ['GET', 'POST', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key', 'Cartesia-Version']
 }));
 
 app.use(express.json());
@@ -30,6 +30,12 @@ const deepgramApiKey = process.env.VITE_DEEPGRAM_API_KEY;
 if (!deepgramApiKey) {
   console.error('VITE_DEEPGRAM_API_KEY environment variable is not set');
   process.exit(1);
+}
+
+// Check if we have the Cartesia API key
+const cartesiaApiKey = process.env.VITE_CARTESIA_API_KEY;
+if (!cartesiaApiKey) {
+  console.warn('VITE_CARTESIA_API_KEY environment variable is not set');
 }
 
 // Error handling middleware
@@ -98,17 +104,27 @@ app.post('/api/deepgram/speech', async (req, res) => {
 // Endpoint to get voices
 app.get('/api/deepgram/voices', async (req, res) => {
   try {
+    console.log('Fetching Deepgram voices...');
+    console.log('Using Deepgram API Key:', deepgramApiKey ? `${deepgramApiKey.slice(0, 4)}...` : 'missing');
+    
     const response = await fetch('https://api.deepgram.com/v1/models', {
       headers: {
         'Authorization': `Token ${deepgramApiKey}`
       }
     });
     
+    console.log('Deepgram API Response Status:', response.status);
+    console.log('Deepgram API Response Headers:', Object.fromEntries(response.headers.entries()));
+    
     if (!response.ok) {
-      throw new Error(`Failed to fetch voices: ${response.statusText}`);
+      const errorText = await response.text();
+      console.error('Deepgram API Error Response:', errorText);
+      throw new Error(`Failed to fetch voices: ${response.statusText}. ${errorText}`);
     }
 
     const data = await response.json();
+    console.log('Deepgram API Response Data:', JSON.stringify(data, null, 2));
+    
     const voices = data.tts?.map(voice => ({
       model_id: voice.canonical_name,
       name: voice.name,
@@ -119,14 +135,216 @@ app.get('/api/deepgram/voices', async (req, res) => {
       provider: 'Deepgram'
     })) || [];
 
+    console.log(`Found ${voices.length} Deepgram voices`);
     res.json(voices);
   } catch (error) {
-    console.error('Error fetching voices:', error);
+    console.error('Error fetching Deepgram voices:', error);
     res.status(500).json({ error: error.message });
   }
 });
 
-// PlayHT endpoints
+// Cartesia endpoints
+app.get('/api/cartesia/voices', async (req, res) => {
+  try {
+    console.log('Received request for Cartesia voices');
+    
+    if (!cartesiaApiKey) {
+      console.error('Cartesia API key is missing');
+      throw new Error('Cartesia API key is not configured');
+    }
+    console.log('Cartesia API Key is configured:', cartesiaApiKey);
+
+    console.log('Making request to Cartesia API...');
+    const response = await fetch('https://api.cartesia.ai/voices', {
+      method: 'GET',
+      headers: {
+        'X-API-Key': cartesiaApiKey,
+        'Accept': 'application/json',
+        'Cartesia-Version': '2024-06-10',
+        'User-Agent': 'TalkAI247/1.0'
+      }
+    });
+
+    console.log('Cartesia API Response Status:', response.status);
+    const responseText = await response.text();
+    console.log('Cartesia API Raw Response:', responseText);
+
+    if (!response.ok) {
+      console.error('Cartesia API Error Response:', responseText);
+      throw new Error(`Failed to fetch voices: ${response.status}. ${responseText}`);
+    }
+
+    try {
+      const data = JSON.parse(responseText);
+      console.log('Cartesia API Parsed Data:', JSON.stringify(data, null, 2));
+      // The Cartesia API returns an array directly, not wrapped in a voices property
+      res.json({ voices: Array.isArray(data) ? data : [] });
+    } catch (parseError) {
+      console.error('Error parsing JSON response:', parseError);
+      throw new Error('Failed to parse Cartesia API response');
+    }
+  } catch (error) {
+    console.error('Error fetching Cartesia voices:', error);
+    res.status(500).json({ 
+      error: 'Failed to fetch voices',
+      details: error.message,
+      stack: error.stack
+    });
+  }
+});
+
+app.get('/api/cartesia/voice/:voiceId', async (req, res) => {
+  try {
+    if (!cartesiaApiKey) {
+      throw new Error('Cartesia API key is not configured');
+    }
+
+    const voiceId = req.params.voiceId;
+    console.log('Fetching voice metadata for:', voiceId);
+
+    // First get the voice details
+    const voiceResponse = await fetch(`https://api.cartesia.ai/voices/${voiceId}`, {
+      headers: {
+        'X-API-Key': cartesiaApiKey,
+        'Accept': 'application/json',
+        'Cartesia-Version': '2024-06-10'
+      }
+    });
+
+    console.log('Voice Response Status:', voiceResponse.status);
+    if (!voiceResponse.ok) {
+      const errorText = await voiceResponse.text();
+      console.error('Cartesia API Error Response:', errorText);
+      throw new Error(`Failed to fetch voice details: ${voiceResponse.status}. ${errorText}`);
+    }
+
+    const voice = await voiceResponse.json();
+    res.json({
+      id: voice.id,
+      name: voice.name,
+      description: voice.description,
+      language: voice.language
+    });
+  } catch (error) {
+    console.error('Error fetching voice metadata:', error);
+    res.status(500).json({ 
+      error: 'Failed to fetch voice metadata',
+      details: error.message,
+      voiceId: req.params.voiceId
+    });
+  }
+});
+
+app.post('/api/cartesia/text-to-speech', async (req, res) => {
+  try {
+    const { text, voiceId } = req.body;
+    
+    if (!text || !voiceId) {
+      return res.status(400).json({ error: 'Missing required parameters: text and voiceId' });
+    }
+
+    console.log('Generating Cartesia speech:', { text, voiceId });
+    
+    const response = await fetch('https://api.cartesia.ai/tts/bytes', {
+      method: 'POST',
+      headers: {
+        'X-API-Key': cartesiaApiKey,
+        'Content-Type': 'application/json',
+        'Cartesia-Version': '2024-06-10'
+      },
+      body: JSON.stringify({
+        modelId: 'sonic-english',
+        transcript: text,
+        voice: {
+          mode: 'id',
+          id: voiceId
+        },
+        outputFormat: {
+          container: 'mp3',
+          sampleRate: 44100,
+          encoding: 'mp3'
+        }
+      })
+    });
+
+    console.log('Cartesia TTS Response Status:', response.status);
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Cartesia API Error Response:', errorText);
+      throw new Error(`Cartesia API error: ${response.status}. ${errorText}`);
+    }
+
+    const audioBuffer = await response.arrayBuffer();
+    res.set('Content-Type', 'audio/mpeg');
+    res.send(Buffer.from(audioBuffer));
+  } catch (error) {
+    console.error('Error generating Cartesia speech:', error);
+    res.status(500).json({ 
+      error: 'Failed to generate Cartesia speech',
+      details: error.message,
+      apiKey: cartesiaApiKey ? 'present' : 'missing'
+    });
+  }
+});
+
+// Get voice sample
+app.get('/api/cartesia/voice-sample/:voiceId', async (req, res) => {
+  try {
+    if (!cartesiaApiKey) {
+      throw new Error('Cartesia API key is not configured');
+    }
+
+    const voiceId = req.params.voiceId;
+    console.log('Fetching voice sample for:', voiceId);
+
+    // First get the voice details
+    const voiceResponse = await fetch(`https://api.cartesia.ai/voices/${voiceId}`, {
+      headers: {
+        'X-API-Key': cartesiaApiKey,
+        'Accept': 'application/json',
+        'Cartesia-Version': '2024-06-10'
+      }
+    });
+
+    console.log('Voice Response Status:', voiceResponse.status);
+    if (!voiceResponse.ok) {
+      const errorText = await voiceResponse.text();
+      console.error('Cartesia API Error Response:', errorText);
+      throw new Error(`Failed to fetch voice details: ${voiceResponse.status}. ${errorText}`);
+    }
+
+    const voice = await voiceResponse.json();
+    console.log('Voice:', voice);
+
+    // Get the voice's audio
+    const audioResponse = await fetch(`https://api.cartesia.ai/voices/${voiceId}/audio`, {
+      headers: {
+        'X-API-Key': cartesiaApiKey,
+        'Accept': 'audio/mpeg',
+        'Cartesia-Version': '2024-06-10'
+      }
+    });
+
+    console.log('Audio Response Status:', audioResponse.status);
+    if (!audioResponse.ok) {
+      const errorText = await audioResponse.text();
+      console.error('Cartesia API Error Response:', errorText);
+      throw new Error(`Failed to fetch voice audio: ${audioResponse.status}. ${errorText}`);
+    }
+
+    const audioBuffer = await audioResponse.arrayBuffer();
+    res.set('Content-Type', 'audio/mpeg');
+    res.send(Buffer.from(audioBuffer));
+  } catch (error) {
+    console.error('Error fetching voice sample:', error);
+    res.status(500).json({ 
+      error: 'Failed to fetch voice sample',
+      details: error.message,
+      voiceId: req.params.voiceId
+    });
+  }
+});
+
 app.get('/api/playht/voices', async (req, res) => {
   try {
     // Log environment variables (safely)
