@@ -7,6 +7,9 @@ import { AddVoiceCloneModal } from './AddVoiceCloneModal';
 import { VoiceDetailsModal } from './VoiceDetailsModal';
 import type { Voice, Provider } from './types';
 import { elevenLabsService } from '@/services/elevenLabs';
+import { deepgramApi } from '@/services/deepgram';
+import { playhtApi } from '@/services/playht';
+import { cartesiaApi } from '@/services/cartesia';
 import { toast } from '@/components/ui/use-toast';
 
 const allLanguages = [
@@ -16,10 +19,10 @@ const allLanguages = [
 ];
 
 const allProviders: Provider[] = [
-  { name: "Talkai247", status: "Included", languages: ["English"] },
-  { name: "11Labs", status: "Premium", languages: ["English"] },
-  { name: "Playht", status: "Premium", languages: ["English"] },
+  { name: "ElevenLabs", status: "Premium", languages: ["English"] },
   { name: "Deepgram", status: "Included", languages: ["English"] },
+  { name: "Playht", status: "Premium", languages: allLanguages },
+  { name: "Cartesia", status: "Premium", languages: ["English"] },
   { name: "Azure", status: "Included", languages: allLanguages },
 ];
 
@@ -38,29 +41,135 @@ export default function VoiceLibraryTab() {
       try {
         setIsLoading(true);
         console.log('Fetching voices...');
-        const elevenLabsVoices = await elevenLabsService.getAllVoices();
         
-        const formattedVoices: Voice[] = elevenLabsVoices.map((voice) => ({
-          id: voice.voice_id,
-          name: voice.name,
-          gender: voice.labels?.gender || "Not specified",
-          nationality: voice.labels?.accent || "Not specified",
-          language: "English",
-          provider: "11Labs",
-          traits: [
-            voice.category,
-            voice.labels?.description,
-            voice.labels?.use_case,
-            voice.labels?.age,
-          ].filter((trait): trait is string => Boolean(trait)),
-          preview_url: voice.preview_url,
-          eleven_labs_id: voice.voice_id,
-          category: voice.category,
-          available_for_tiers: voice.available_for_tiers
-        }));
+        // Fetch ElevenLabs voices
+        let formattedElevenLabsVoices: Voice[] = [];
+        try {
+          const elevenLabsVoices = await elevenLabsService.getAllVoices();
+          formattedElevenLabsVoices = elevenLabsVoices.map((voice) => {
+            // Get all non-empty labels
+            const traits = Object.entries(voice.labels || {})
+              .filter(([_, value]) => value && typeof value === 'string')
+              .map(([key, value]) => `${key}: ${value}`);
 
-        console.log('Formatted voices:', formattedVoices);
-        setVoices(formattedVoices);
+            // Add category if it exists
+            if (voice.category) {
+              traits.unshift(`Category: ${voice.category}`);
+            }
+
+            return {
+              id: voice.voice_id,
+              name: voice.name,
+              gender: voice.labels?.gender || "Not specified",
+              nationality: voice.labels?.accent || "Not specified",
+              language: voice.fine_tuning?.language || "English",
+              provider: "ElevenLabs",
+              traits: traits.filter(Boolean),
+              preview_url: voice.preview_url,
+              eleven_labs_id: voice.voice_id,
+              category: voice.category,
+              available_for_tiers: voice.available_for_tiers
+            };
+          });
+        } catch (error) {
+          console.error('Error fetching ElevenLabs voices:', error);
+          toast({
+            title: "Warning",
+            description: "Failed to fetch ElevenLabs voices. Other voices will still be available.",
+            variant: "default",
+          });
+        }
+
+        // Fetch Deepgram voices
+        let formattedDeepgramVoices: Voice[] = [];
+        try {
+          const deepgramVoices = await deepgramApi.getVoices();
+          formattedDeepgramVoices = deepgramVoices.map((voice) => ({
+            id: voice.model_id,
+            name: voice.name,
+            gender: voice.gender,
+            nationality: "Not specified",
+            language: voice.language,
+            provider: "Deepgram",
+            traits: [
+              voice.description || "",
+            ].filter(Boolean),
+            preview_url: voice.preview_url,
+            deepgram_id: voice.model_id
+          }));
+        } catch (error) {
+          console.error('Error fetching Deepgram voices:', error);
+          toast({
+            title: "Warning",
+            description: "Failed to fetch Deepgram voices. Other voices will still be available.",
+            variant: "default",
+          });
+        }
+
+        // Fetch PlayHT voices
+        let formattedPlayhtVoices: Voice[] = [];
+        try {
+          const playhtVoices = await playhtApi.getVoices();
+          formattedPlayhtVoices = playhtVoices.map((voice) => ({
+            id: voice.id,
+            name: voice.name,
+            gender: voice.gender,
+            nationality: "Not specified",
+            language: voice.language,
+            provider: "Playht",
+            traits: [
+              voice.voiceEngine,
+              voice.description || "",
+            ].filter(Boolean),
+            preview_url: voice.preview_url,
+            playht_id: voice.id
+          }));
+        } catch (error) {
+          console.error('Error fetching PlayHT voices:', error);
+          toast({
+            title: "Warning",
+            description: "Failed to fetch PlayHT voices. Other voices will still be available.",
+            variant: "default",
+          });
+        }
+
+        // Fetch Cartesia voices
+        let formattedCartesiaVoices: Voice[] = [];
+        try {
+          const cartesiaVoices = await cartesiaApi.getVoices();
+          formattedCartesiaVoices = cartesiaVoices.map((voice) => ({
+            id: voice.id,
+            name: voice.name,
+            gender: voice.gender,
+            nationality: "Not specified",
+            language: voice.language,
+            provider: "Cartesia",
+            traits: [
+              voice.description || "",
+              voice.category ? `Category: ${voice.category}` : "",
+            ].filter(Boolean),
+            preview_url: voice.preview_url,
+            cartesia_id: voice.id
+          }));
+        } catch (error) {
+          console.error('Error fetching Cartesia voices:', error);
+          toast({
+            title: "Warning",
+            description: "Failed to fetch Cartesia voices. Other voices will still be available.",
+            variant: "default",
+          });
+        }
+
+        // Combine all voices
+        const allVoices = [
+          ...formattedElevenLabsVoices,
+          ...formattedDeepgramVoices,
+          ...formattedPlayhtVoices,
+          ...formattedCartesiaVoices
+        ];
+        
+        console.log('All voices:', allVoices);
+        setVoices(allVoices);
       } catch (error) {
         console.error('Error fetching voices:', error);
         toast({

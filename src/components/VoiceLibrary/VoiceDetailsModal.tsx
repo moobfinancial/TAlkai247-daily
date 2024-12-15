@@ -1,3 +1,4 @@
+import React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -25,6 +26,7 @@ export function VoiceDetailsModal({ voice, isOpen, onClose, providers }: VoiceDe
             View and manage voice settings
           </p>
         </DialogHeader>
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
           <div>
             <h4 className="font-semibold text-white mb-2">Characteristics</h4>
@@ -40,14 +42,20 @@ export function VoiceDetailsModal({ voice, isOpen, onClose, providers }: VoiceDe
                 {providers.find(p => p.name === voice.provider)?.status || "Custom"}
               </Badge>
             </p>
+            {(voice.eleven_labs_id || voice.deepgram_id || voice.playht_id) && (
+              <p className="text-gray-300">
+                ID: {voice.eleven_labs_id || voice.deepgram_id || voice.playht_id}
+              </p>
+            )}
             <div className="flex flex-wrap gap-2 mt-2">
-              {voice.traits.map((trait) => (
-                <span key={trait} className="px-2 py-0.5 bg-gray-700 text-gray-200 rounded-full text-xs">
+              {voice.traits.map((trait, index) => (
+                <span key={index} className="px-2 py-0.5 bg-gray-700 text-gray-200 rounded-full text-xs">
                   {trait}
                 </span>
               ))}
             </div>
           </div>
+
           <div>
             <h4 className="font-semibold text-white mb-2">Actions</h4>
             <div className="space-y-2">

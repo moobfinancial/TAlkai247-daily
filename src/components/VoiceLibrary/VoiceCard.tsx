@@ -1,10 +1,13 @@
 import React, { useState } from 'react';
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Play, Pause } from 'lucide-react';
+import { PlayCircle, PauseCircle, Copy } from 'lucide-react';
 import { elevenLabsService } from '@/services/elevenLabs';
-import { Copy } from 'lucide-react';
+import { deepgramApi } from '@/services/deepgram';
+import { playhtApi } from '@/services/playht';
+import { cartesiaApi } from '@/services/cartesia';
+import type { Voice } from './types';
 import { toast } from '@/components/ui/use-toast';
 
 interface Voice {
@@ -17,6 +20,9 @@ interface Voice {
   traits: string[];
   preview_url?: string;
   eleven_labs_id?: string;
+  deepgram_id?: string;
+  playht_id?: string;
+  cartesia_id?: string;
   category?: string;
   available_for_tiers?: string[];
 }
@@ -28,43 +34,65 @@ interface VoiceCardProps {
 
 export function VoiceCard({ voice, onSelect }: VoiceCardProps) {
   const [isPlaying, setIsPlaying] = useState(false);
-  const [audioUrl, setAudioUrl] = useState<string | null>(null);
-  const audioRef = React.useRef<HTMLAudioElement | null>(null);
+  const [audioElement, setAudioElement] = useState<HTMLAudioElement | null>(null);
 
-  const handlePlay = async () => {
+  const handlePreview = async () => {
     try {
-      if (!audioUrl && voice.eleven_labs_id) {
-        toast({
-          title: "Loading preview...",
-          description: "Fetching voice sample from ElevenLabs",
-        });
-        const previewUrl = await elevenLabsService.getVoicePreview(voice.eleven_labs_id);
-        setAudioUrl(previewUrl);
+      if (isPlaying && audioElement) {
+        audioElement.pause();
+        setIsPlaying(false);
+        return;
+      }
+
+      toast({
+        title: "Loading preview...",
+        description: `Fetching voice sample from ${voice.provider}`,
+      });
+
+      let audioData: ArrayBuffer;
+      
+      switch (voice.provider) {
+        case "ElevenLabs":
+          audioData = await elevenLabsService.previewVoice(voice.eleven_labs_id!, voice.preview_url);
+          break;
+        case "Deepgram":
+          audioData = await deepgramApi.previewVoice(voice.deepgram_id!);
+          break;
+        case "Playht":
+          audioData = await playhtApi.previewVoice(voice.playht_id!);
+          break;
+        case "Cartesia":
+          audioData = await cartesiaApi.previewVoice(voice.cartesia_id!, voice.preview_url);
+          break;
+        default:
+          throw new Error(`Unsupported provider: ${voice.provider}`);
+      }
+
+      const blob = new Blob([audioData], { type: 'audio/mpeg' });
+      const url = URL.createObjectURL(blob);
+      
+      const audio = new Audio(url);
+      audio.onended = () => {
+        setIsPlaying(false);
+        URL.revokeObjectURL(url);
+      };
+      
+      if (audioElement) {
+        audioElement.pause();
+        URL.revokeObjectURL(audioElement.src);
       }
       
-      if (audioRef.current) {
-        if (isPlaying) {
-          audioRef.current.pause();
-        } else {
-          if (!audioUrl && !voice.preview_url) {
-            toast({
-              title: "No preview available",
-              description: "This voice doesn't have a preview sample",
-              variant: "destructive",
-            });
-            return;
-          }
-          await audioRef.current.play();
-        }
-        setIsPlaying(!isPlaying);
-      }
+      setAudioElement(audio);
+      await audio.play();
+      setIsPlaying(true);
     } catch (error) {
       console.error('Error playing preview:', error);
       toast({
         title: "Error",
-        description: "Failed to play voice preview",
+        description: "Failed to play voice preview. Please try again later.",
         variant: "destructive",
       });
+      setIsPlaying(false);
     }
   };
 
@@ -76,7 +104,7 @@ export function VoiceCard({ voice, onSelect }: VoiceCardProps) {
             <h3 className="text-lg font-semibold text-white">{voice.name}</h3>
             <span className="text-sm text-gray-400">{voice.nationality}</span>
           </div>
-          <Badge variant={voice.provider === "Talkai247" ? "secondary" : "destructive"}>
+          <Badge variant={voice.provider === "ElevenLabs" ? "secondary" : "destructive"}>
             {voice.provider}
           </Badge>
         </div>
@@ -87,14 +115,18 @@ export function VoiceCard({ voice, onSelect }: VoiceCardProps) {
             <p className="text-xs text-gray-500">Category: {voice.category}</p>
           )}
           <div className="flex items-center gap-2">
-            <p className="text-xs text-gray-500">ID: {voice.eleven_labs_id || 'N/A'}</p>
-            {voice.eleven_labs_id && (
+            <p className="text-xs text-gray-500">
+              ID: {voice.eleven_labs_id || voice.deepgram_id || voice.playht_id || voice.cartesia_id || 'N/A'}
+            </p>
+            {(voice.eleven_labs_id || voice.deepgram_id || voice.playht_id || voice.cartesia_id) && (
               <Button
                 size="sm"
                 variant="ghost"
                 className="h-6 p-1"
-                onClick={() => {
-                  navigator.clipboard.writeText(voice.eleven_labs_id);
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const id = voice.eleven_labs_id || voice.deepgram_id || voice.playht_id || voice.cartesia_id;
+                  navigator.clipboard.writeText(id!);
                   toast({
                     title: "Copied!",
                     description: "Voice ID copied to clipboard",
@@ -124,13 +156,15 @@ export function VoiceCard({ voice, onSelect }: VoiceCardProps) {
             size="sm" 
             variant="secondary" 
             className="w-24"
-            onClick={handlePlay}
-            disabled={!voice.eleven_labs_id && !voice.preview_url}
+            onClick={(e) => {
+              e.stopPropagation();
+              handlePreview();
+            }}
           >
             {isPlaying ? (
-              <><Pause className="w-4 h-4 mr-2" /> Pause</>
+              <><PauseCircle className="w-4 h-4 mr-2" /> Pause</>
             ) : (
-              <><Play className="w-4 h-4 mr-2" /> Play</>
+              <><PlayCircle className="w-4 h-4 mr-2" /> Play</>
             )}
           </Button>
           <Button 
@@ -143,15 +177,6 @@ export function VoiceCard({ voice, onSelect }: VoiceCardProps) {
           </Button>
         </div>
       </CardContent>
-      {(audioUrl || voice.preview_url) && (
-        <audio
-          ref={audioRef}
-          src={audioUrl || voice.preview_url}
-          onEnded={() => setIsPlaying(false)}
-          onPause={() => setIsPlaying(false)}
-          onPlay={() => setIsPlaying(true)}
-        />
-      )}
     </Card>
   );
 }
