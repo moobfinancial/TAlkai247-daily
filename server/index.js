@@ -126,19 +126,122 @@ app.get('/api/deepgram/voices', async (req, res) => {
   }
 });
 
-// Proxy endpoint for PlayHT voices
+// PlayHT endpoints
 app.get('/api/playht/voices', async (req, res) => {
   try {
-    const response = await fetch('https://api.play.ht/api/v2/voices', {
-      headers: {
-        'Authorization': `Bearer ${process.env.VITE_PLAYHT_API_KEY}`,
-        'X-User-ID': process.env.VITE_PLAYHT_USER_ID
-      }
+    // Log environment variables (safely)
+    console.log('PlayHT API Configuration:', {
+      apiKeyPresent: !!process.env.VITE_PLAYHT_API_KEY,
+      apiKeyLength: process.env.VITE_PLAYHT_API_KEY?.length,
+      userIdPresent: !!process.env.VITE_PLAYHT_USER_ID,
+      userIdLength: process.env.VITE_PLAYHT_USER_ID?.length
     });
+
+    const headers = {
+      'accept': 'application/json',
+      'AUTHORIZATION': process.env.VITE_PLAYHT_API_KEY,
+      'X-USER-ID': process.env.VITE_PLAYHT_USER_ID
+    };
+
+    console.log('Request headers:', headers);
+
+    const response = await fetch('https://api.play.ht/api/v2/voices', {
+      method: 'GET',
+      headers: headers
+    });
+    
+    console.log('PlayHT API Response Status:', response.status);
+    console.log('PlayHT API Response Headers:', Object.fromEntries(response.headers.entries()));
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('PlayHT API Error Response:', errorText);
+      throw new Error(`Failed to fetch voices: ${response.statusText}. ${errorText}`);
+    }
+
     const data = await response.json();
-    res.json(data);
+    console.log('PlayHT API Response Data:', JSON.stringify(data, null, 2));
+
+    // Send the voices array directly
+    const voices = Array.isArray(data) ? data : [];
+    console.log(`Found ${voices.length} voices`);
+    res.json(voices);
   } catch (error) {
     console.error('Error fetching PlayHT voices:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/playht/speech', async (req, res) => {
+  try {
+    const { text, voice, quality, output_format } = req.body;
+    
+    // Create conversion request
+    const response = await fetch('https://api.play.ht/api/v2/tts', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.VITE_PLAYHT_API_KEY}`,
+        'X-User-ID': process.env.VITE_PLAYHT_USER_ID,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        text,
+        voice,
+        quality,
+        output_format
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to generate speech: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    
+    // Get the audio data
+    const audioResponse = await fetch(data.audioUrl);
+    if (!audioResponse.ok) {
+      throw new Error(`Failed to fetch audio: ${audioResponse.statusText}`);
+    }
+
+    const audioBuffer = await audioResponse.arrayBuffer();
+    
+    // Set appropriate headers
+    res.set('Content-Type', 'audio/mpeg');
+    res.set('Content-Length', audioBuffer.byteLength);
+    
+    res.send(Buffer.from(audioBuffer));
+  } catch (error) {
+    console.error('Error generating speech with PlayHT:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// PlayHT preview endpoint
+app.get('/api/playht/preview', async (req, res) => {
+  try {
+    const previewUrl = req.query.url;
+    if (!previewUrl) {
+      throw new Error('Preview URL is required');
+    }
+
+    console.log('Fetching preview from URL:', previewUrl);
+
+    const response = await fetch(previewUrl);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch preview: ${response.statusText}`);
+    }
+
+    const buffer = await response.arrayBuffer();
+    
+    // Set appropriate content type based on the URL
+    const contentType = response.headers.get('content-type') || 'audio/mpeg';
+    res.setHeader('Content-Type', contentType);
+    res.setHeader('Content-Length', buffer.byteLength);
+    
+    res.send(Buffer.from(buffer));
+  } catch (error) {
+    console.error('Error fetching voice preview:', error);
     res.status(500).json({ error: error.message });
   }
 });
