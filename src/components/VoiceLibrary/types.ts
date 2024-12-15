@@ -1,17 +1,18 @@
 export interface Voice {
-  id: number | string;
+  id: string;
   name: string;
   gender: string;
   nationality: string;
   language: string;
-  provider: string;
+  provider: VoiceProvider;
   traits: string[];
-  isCloned?: boolean;
-  audioUrl?: string;
   preview_url?: string;
   eleven_labs_id?: string;
+  deepgram_id?: string;
+  playht_id?: string;
   category?: string;
   available_for_tiers?: string[];
+  voice_engine?: string;
 };
 
 export interface Provider {
@@ -19,3 +20,5 @@ export interface Provider {
   status: "Included" | "Premium";
   languages: string[];
 };
+
+export type VoiceProvider = "11Labs" | "Deepgram" | "Playht" | "Talkai247" | "Azure";

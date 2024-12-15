@@ -4,12 +4,12 @@ import type { ElevenLabsVoice, ElevenLabsResponse } from '@/types/elevenLabs';
 const ELEVEN_LABS_API_URL = 'https://api.elevenlabs.io/v1';
 
 class ElevenLabsService {
-  apiKey: string;  // Changed to public for debugging
+  apiKey: string;
 
   constructor() {
-    this.apiKey = import.meta.env.VITE_ELEVEN_LABS_API_KEY || '';
+    this.apiKey = import.meta.env.VITE_ELEVENLABS_API_KEY || '';
     if (!this.apiKey) {
-      console.warn('No Eleven Labs API key found in environment variables');
+      console.warn('No ElevenLabs API key found in environment variables');
     }
   }
 
@@ -22,9 +22,8 @@ class ElevenLabsService {
 
   async getAllVoices(): Promise<ElevenLabsVoice[]> {
     try {
-      console.log('Making request to Eleven Labs API...');
+      console.log('Making request to ElevenLabs API...');
       console.log('API URL:', `${ELEVEN_LABS_API_URL}/voices`);
-      console.log('Headers:', this.headers);
       
       const response = await axios.get<ElevenLabsResponse>(`${ELEVEN_LABS_API_URL}/voices`, {
         headers: this.headers,
@@ -36,45 +35,72 @@ class ElevenLabsService {
       }
 
       console.log('Total voices received:', response.data.voices.length);
-      console.log('Voice details:', response.data.voices.map(v => ({
-        name: v.name,
-        category: v.category,
-        available_for_tiers: v.available_for_tiers
-      })));
-
-      console.log('Response received:', response.data);
       return response.data.voices;
     } catch (error) {
-      console.error('Error fetching Eleven Labs voices:', error);
-      if (axios.isAxiosError(error)) {
-        console.error('Response data:', error.response?.data);
-        console.error('Status:', error.response?.status);
-      }
+      console.error('Error fetching ElevenLabs voices:', error);
       throw error;
     }
   }
 
-  async getVoicePreview(voiceId: string): Promise<string> {
+  async previewVoice(voiceId: string, previewUrl?: string): Promise<ArrayBuffer> {
     try {
-      console.log('Making request to Eleven Labs API...');
-      console.log('API URL:', `${ELEVEN_LABS_API_URL}/voices/${voiceId}`);
-      console.log('Headers:', this.headers);
-      
-      const response = await axios.get(
-        `${ELEVEN_LABS_API_URL}/voices/${voiceId}`,
+      // If we have a preview URL, use that first
+      if (previewUrl) {
+        try {
+          const response = await axios.get(previewUrl, {
+            responseType: 'arraybuffer'
+          });
+          return response.data;
+        } catch (error) {
+          console.warn('Failed to fetch preview URL, falling back to text-to-speech:', error);
+        }
+      }
+
+      // Fall back to generating speech if preview URL fails or is not available
+      const response = await axios.post(
+        `${ELEVEN_LABS_API_URL}/text-to-speech/${voiceId}`,
+        {
+          text: "Hello! This is a preview of how I sound.",
+          model_id: "eleven_monolingual_v1",
+          voice_settings: {
+            stability: 0.5,
+            similarity_boost: 0.75
+          }
+        },
         {
           headers: this.headers,
+          responseType: 'arraybuffer'
         }
       );
-      
-      console.log('Response received:', response.data);
-      return response.data.preview_url;
+
+      return response.data;
     } catch (error) {
-      console.error('Error fetching voice preview:', error);
-      if (axios.isAxiosError(error)) {
-        console.error('Response data:', error.response?.data);
-        console.error('Status:', error.response?.status);
-      }
+      console.error('Error generating voice preview:', error);
+      throw error;
+    }
+  }
+
+  async generateSpeech(text: string, voiceId: string): Promise<ArrayBuffer> {
+    try {
+      const response = await axios.post(
+        `${ELEVEN_LABS_API_URL}/text-to-speech/${voiceId}`,
+        {
+          text,
+          model_id: "eleven_monolingual_v1",
+          voice_settings: {
+            stability: 0.5,
+            similarity_boost: 0.75
+          }
+        },
+        {
+          headers: this.headers,
+          responseType: 'arraybuffer'
+        }
+      );
+
+      return response.data;
+    } catch (error) {
+      console.error('Error generating speech:', error);
       throw error;
     }
   }
