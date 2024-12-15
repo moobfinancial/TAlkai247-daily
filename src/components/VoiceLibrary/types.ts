@@ -10,6 +10,7 @@ export interface Voice {
   eleven_labs_id?: string;
   deepgram_id?: string;
   playht_id?: string;
+  cartesia_id?: string;
   category?: string;
   available_for_tiers?: string[];
   voice_engine?: string;
@@ -21,4 +22,4 @@ export interface Provider {
   languages: string[];
 };
 
-export type VoiceProvider = "11Labs" | "Deepgram" | "Playht" | "Talkai247" | "Azure";
+export type VoiceProvider = "11Labs" | "Deepgram" | "Playht" | "Talkai247" | "Azure" | "Cartesia";

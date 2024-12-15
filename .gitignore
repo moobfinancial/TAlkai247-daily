@@ -12,6 +12,9 @@ dist
 dist-ssr
 *.local
 
+cartesia-js/
+sample.mp3
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
