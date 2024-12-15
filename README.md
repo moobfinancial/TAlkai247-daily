@@ -49,41 +49,34 @@ The server will run on `http://localhost:3000`.
 
 ### Managing the Server
 
-#### Development Mode
-When running in development mode (`npm run dev`), the server uses nodemon which provides several useful commands:
+#### Starting the Server
+You can start the server in two ways:
 
-- `rs` - Restart the server (just type `rs` and press Enter in the terminal)
-- `Ctrl + C` - Stop the server
-- `npm run dev` - Start the server again
-
-#### Using PM2 (Recommended for Better Process Management)
-1. Install PM2 globally:
+1. Using npm (recommended for development):
 ```bash
-npm install -g pm2
+npm run dev
 ```
 
-2. Start the server with PM2:
+2. Using Node directly:
 ```bash
-# From the server directory
-pm2 start npm --name "talkai247" -- run dev
+node server/index.js
 ```
 
-PM2 Commands:
+#### Troubleshooting Server Issues
+
+If you encounter the "Port 3000 is already in use" error:
+
+1. Find the process using port 3000:
 ```bash
-pm2 list                # List all processes
-pm2 stop talkai247     # Stop the server
-pm2 restart talkai247  # Restart the server
-pm2 logs talkai247     # View logs
-pm2 delete talkai247   # Remove from PM2
-pm2 monit              # Monitor all processes
-pm2 save               # Save process list
+lsof -i :3000
 ```
 
-To ensure PM2 restarts your processes after system reboot:
+2. Kill the existing process (replace [PID] with the process ID from step 1):
 ```bash
-pm2 startup            # Generate startup script
-pm2 save               # Save process list
+kill -9 [PID]
 ```
+
+3. Start the server again using one of the methods above.
 
 ### Authentication Endpoints
 
@@ -117,13 +110,6 @@ Authorization: Bearer <your-jwt-token>
 ```
 
 ### Troubleshooting Common Issues
-
-#### Port Already in Use
-If you see `EADDRINUSE: address already in use :::3000`, run:
-```bash
-lsof -i :3000  # Find the process using port 3000
-kill -9 <PID>  # Kill the process
-```
 
 #### TypeScript/Module Issues
 If you encounter TypeScript or module-related errors:
