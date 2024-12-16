@@ -1,10 +1,12 @@
 import express from 'express';
 import cors from 'cors';
 import fetch from 'node-fetch';
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
 import dotenv from 'dotenv';
 import path from 'path';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+import assistantRoutes from './routes/assistants.js';
+import templateRoutes from './routes/templates.js';
 
 // Get the directory path
 const __filename = fileURLToPath(import.meta.url);
@@ -16,12 +18,24 @@ dotenv.config({ path: path.join(__dirname, '..', '.env') });
 const app = express();
 const port = process.env.PORT || 3000;
 
-// Configure CORS
-app.use(cors({
-  origin: ['http://localhost:5173', 'http://localhost:3000'],
-  methods: ['GET', 'POST', 'OPTIONS'],
+// Configure CORS to be more permissive during development
+const corsOptions = {
+  origin: function(origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    // Allow any localhost origin
+    if (origin.match(/^http:\/\/localhost(:\d+)?$/)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key', 'Cartesia-Version']
-}));
+};
+
+app.use(cors(corsOptions));
 
 app.use(express.json());
 
@@ -37,6 +51,44 @@ const cartesiaApiKey = process.env.VITE_CARTESIA_API_KEY;
 if (!cartesiaApiKey) {
   console.warn('VITE_CARTESIA_API_KEY environment variable is not set');
 }
+
+// Check if we have the OpenRouter API key
+const openrouterApiKey = process.env.VITE_OPENROUTER_API_KEY;
+if (!openrouterApiKey) {
+  console.warn('VITE_OPENROUTER_API_KEY environment variable is not set');
+}
+
+// Mount the assistant routes
+app.use('/api/assistants', assistantRoutes);
+app.use('/api/templates', templateRoutes);
+
+// OpenRouter endpoints
+app.get('/api/openrouter/models', async (req, res) => {
+  try {
+    const response = await fetch('https://openrouter.ai/api/v1/models', {
+      headers: {
+        'Authorization': `Bearer ${openrouterApiKey}`,
+        'HTTP-Referer': 'http://localhost:3000',
+        'X-Title': 'TAlkai247'
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`OpenRouter API returned ${response.status}`);
+    }
+
+    const data = await response.json();
+    res.json({ data: data.data });
+  } catch (error) {
+    console.error('Error fetching models:', error);
+    res.status(500).json({ 
+      error: {
+        code: 'OPENROUTER_API_ERROR',
+        message: error.message
+      }
+    });
+  }
+});
 
 // Error handling middleware
 app.use((err, req, res, next) => {
@@ -460,6 +512,71 @@ app.get('/api/playht/preview', async (req, res) => {
     res.send(Buffer.from(buffer));
   } catch (error) {
     console.error('Error fetching voice preview:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// OpenRouter proxy endpoints
+app.get('/api/openrouter/models', async (req, res) => {
+  try {
+    console.log('Fetching OpenRouter models');
+    
+    if (!openrouterApiKey) {
+      throw new Error('OpenRouter API key is not configured');
+    }
+
+    const response = await fetch('https://openrouter.ai/api/v1/models/all', {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${openrouterApiKey}`,
+        'HTTP-Referer': 'https://talkai247.com',
+        'X-Title': 'Talkai247'
+      }
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('OpenRouter API error response:', errorText);
+      throw new Error(`OpenRouter API error: ${response.status} ${errorText}`);
+    }
+
+    const data = await response.json();
+    res.json(data);
+  } catch (error) {
+    console.error('Error fetching OpenRouter models:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/openrouter/chat', async (req, res) => {
+  try {
+    console.log('Proxying OpenRouter chat request');
+    
+    if (!openrouterApiKey) {
+      throw new Error('OpenRouter API key is not configured');
+    }
+
+    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${openrouterApiKey}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': 'https://talkai247.com',
+        'X-Title': 'Talkai247'
+      },
+      body: JSON.stringify(req.body)
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('OpenRouter API error response:', errorText);
+      throw new Error(`OpenRouter API error: ${response.status} ${errorText}`);
+    }
+
+    const data = await response.json();
+    res.json(data);
+  } catch (error) {
+    console.error('Error in OpenRouter chat request:', error);
     res.status(500).json({ error: error.message });
   }
 });

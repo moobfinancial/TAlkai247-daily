@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Plus } from 'lucide-react';
 import AssistantCard from './AssistantCard';
 import AssistantWizard from '../AssistantWizard';
 import DeleteConfirmation from '../DeleteConfirmation';
 import { useToast } from "@/components/ui/use-toast";
+import { assistantApi } from '@/services/api';
 
 interface Assistant {
   id: string;
@@ -33,28 +34,53 @@ export default function AssistantsTab() {
   const [showWizard, setShowWizard] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [selectedAssistant, setSelectedAssistant] = useState<Assistant | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const handleCreateAssistant = (assistant: Assistant) => {
-    const newAssistant = {
-      ...assistant,
-      voice: assistant.voiceProvider ? {
-        provider: assistant.voiceProvider,
-        voiceId: assistant.voiceId,
-        settings: {
-          speed: 1,
-          pitch: 1,
-          stability: 0.75,
-          volume: assistant.volume || 75
+  useEffect(() => {
+    const fetchAssistants = async () => {
+      try {
+        const response = await assistantApi.getAll();
+        if (response.success && response.data) {
+          setAssistants(response.data);
+        } else {
+          throw new Error(response.error?.message || 'Failed to fetch assistants');
         }
-      } : undefined
+      } catch (error) {
+        console.error('Error fetching assistants:', error);
+        toast({
+          title: "Error",
+          description: error instanceof Error ? error.message : "Failed to fetch assistants",
+          variant: "destructive"
+        });
+      } finally {
+        setLoading(false);
+      }
     };
 
-    setAssistants([...assistants, newAssistant]);
-    setShowWizard(false);
-    toast({
-      title: "Success",
-      description: "Assistant created successfully"
-    });
+    fetchAssistants();
+  }, [toast]);
+
+  const handleCreateAssistant = async (assistant: Assistant) => {
+    try {
+      const response = await assistantApi.create(assistant);
+      if (response.success && response.data) {
+        setAssistants([...assistants, response.data]);
+        setShowWizard(false);
+        toast({
+          title: "Success",
+          description: "Assistant created successfully"
+        });
+      } else {
+        throw new Error(response.error?.message || 'Failed to create assistant');
+      }
+    } catch (error) {
+      console.error('Error creating assistant:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to create assistant",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleDeleteAssistant = (assistant: Assistant) => {
@@ -62,26 +88,60 @@ export default function AssistantsTab() {
     setShowDeleteDialog(true);
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (selectedAssistant) {
-      setAssistants(assistants.filter(a => a.id !== selectedAssistant.id));
+      try {
+        console.log('Deleting assistant:', selectedAssistant.id);
+        const response = await assistantApi.delete(selectedAssistant.id);
+        if (response.success) {
+          setAssistants(assistants.filter(a => a.id !== selectedAssistant.id));
+          toast({
+            title: "Success",
+            description: "Assistant deleted successfully"
+          });
+        } else {
+          throw new Error(response.error?.message || 'Failed to delete assistant');
+        }
+      } catch (error) {
+        console.error('Error deleting assistant:', error);
+        // Refresh the assistants list to ensure we have the latest data
+        const response = await assistantApi.getAll();
+        if (response.success && response.data) {
+          setAssistants(response.data);
+        }
+        toast({
+          title: "Error",
+          description: error instanceof Error ? error.message : "Failed to delete assistant",
+          variant: "destructive"
+        });
+      }
       setSelectedAssistant(null);
       setShowDeleteDialog(false);
-      toast({
-        title: "Success",
-        description: "Assistant deleted successfully"
-      });
     }
   };
 
-  const handleUpdateAssistant = (updatedAssistant: Assistant) => {
-    setAssistants(assistants.map(assistant => 
-      assistant.id === updatedAssistant.id ? updatedAssistant : assistant
-    ));
-    toast({
-      title: "Success",
-      description: "Assistant updated successfully"
-    });
+  const handleUpdateAssistant = async (updatedAssistant: Assistant) => {
+    try {
+      const response = await assistantApi.update(updatedAssistant.id, updatedAssistant);
+      if (response.success && response.data) {
+        setAssistants(assistants.map(assistant => 
+          assistant.id === updatedAssistant.id ? response.data : assistant
+        ));
+        toast({
+          title: "Success",
+          description: "Assistant updated successfully"
+        });
+      } else {
+        throw new Error(response.error?.message || 'Failed to update assistant');
+      }
+    } catch (error) {
+      console.error('Error updating assistant:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to update assistant",
+        variant: "destructive"
+      });
+    }
   };
 
   return (
@@ -100,16 +160,26 @@ export default function AssistantsTab() {
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {assistants.map((assistant) => (
-          <AssistantCard
-            key={assistant.id}
-            assistant={assistant}
-            onDelete={() => handleDeleteAssistant(assistant)}
-            onUpdate={handleUpdateAssistant}
-          />
-        ))}
-      </div>
+      {loading ? (
+        <div className="text-center py-8">
+          <p className="text-gray-400">Loading assistants...</p>
+        </div>
+      ) : assistants.length === 0 ? (
+        <div className="text-center py-8">
+          <p className="text-gray-400">No assistants found. Create one to get started!</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {assistants.map((assistant) => (
+            <AssistantCard
+              key={assistant.id}
+              assistant={assistant}
+              onDelete={() => handleDeleteAssistant(assistant)}
+              onUpdate={handleUpdateAssistant}
+            />
+          ))}
+        </div>
+      )}
 
       {showWizard && (
         <AssistantWizard
@@ -121,11 +191,10 @@ export default function AssistantsTab() {
       <DeleteConfirmation
         isOpen={showDeleteDialog}
         assistant={selectedAssistant}
-        onClose={() => {
-          setShowDeleteDialog(false);
-          setSelectedAssistant(null);
-        }}
+        onClose={() => setShowDeleteDialog(false)}
         onConfirm={confirmDelete}
+        title="Delete Assistant"
+        description="Are you sure you want to delete this assistant? This action cannot be undone."
       />
     </div>
   );

@@ -29,6 +29,20 @@ export default function ReviewCreate({ formData, onBack, onSubmit }: ReviewCreat
       </div>
 
       <div className="bg-gray-700 p-6 rounded-lg">
+        <h3 className="text-white font-medium mb-4">LLM Configuration</h3>
+        <div className="space-y-2">
+          <div>
+            <span className="text-gray-400">Provider:</span>
+            <p className="text-white capitalize">{formData.provider}</p>
+          </div>
+          <div>
+            <span className="text-gray-400">Model:</span>
+            <p className="text-white">{formData.model}</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-gray-700 p-6 rounded-lg">
         <h3 className="text-white font-medium mb-4">Voice Configuration</h3>
         <div className="space-y-2">
           <div>

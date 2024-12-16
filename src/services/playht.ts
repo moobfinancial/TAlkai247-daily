@@ -12,6 +12,7 @@ interface PlayHTVoice {
   preview_url?: string;
   description?: string;
   samples?: string[];
+  provider: string; // Add the provider field to the interface
 }
 
 export const playhtApi = {
@@ -52,7 +53,8 @@ export const playhtApi = {
           voiceEngine: voice.voiceEngine || 'Standard',
           preview_url,
           description: voice.description || '',
-          samples
+          samples,
+          provider: 'PlayHT' // Add the provider field
         };
 
         console.log(`Mapped voice ${index + 1}:`, mappedVoice);

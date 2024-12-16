@@ -7,9 +7,9 @@ import { Search } from 'lucide-react';
 interface Model {
   id: string;
   name: string;
-  description: string;
-  context_length: number;
-  pricing: {
+  description?: string;
+  context_length?: number;
+  pricing?: {
     prompt: number;
     completion: number;
   };
@@ -32,18 +32,22 @@ interface ModelSelectorProps {
 }
 
 export function ModelSelector({
-  models,
-  providers,
-  selectedModel,
-  selectedProvider,
-  searchTerm,
+  models = [],
+  providers = [],
+  selectedModel = '',
+  selectedProvider = 'all',
+  searchTerm = '',
   onSearch,
   onProviderChange,
   onModelChange,
 }: ModelSelectorProps) {
-  const filteredModels = models.filter(model => {
-    const matchesSearch = model.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         model.description.toLowerCase().includes(searchTerm.toLowerCase());
+  // Ensure models is an array
+  const modelArray = Array.isArray(models) ? models : [];
+  
+  const filteredModels = modelArray.filter(model => {
+    const matchesSearch = !searchTerm || 
+                         model.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (model.description?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false);
     const matchesProvider = selectedProvider === 'all' || 
                            model.id.toLowerCase().includes(selectedProvider.toLowerCase());
     return matchesSearch && matchesProvider;
@@ -89,9 +93,11 @@ export function ModelSelector({
                   <SelectItem key={model.id} value={model.id}>
                     <div className="flex flex-col">
                       <span className="font-medium">{model.name}</span>
-                      <span className="text-xs text-gray-400">
-                        ${model.pricing.prompt.toFixed(4)}/1K tokens
-                      </span>
+                      {model.pricing && (
+                        <span className="text-xs text-gray-400">
+                          ${model.pricing.prompt.toFixed(4)}/1K tokens
+                        </span>
+                      )}
                     </div>
                   </SelectItem>
                 ))}
@@ -105,17 +111,23 @@ export function ModelSelector({
         <div className="bg-gray-700 p-4 rounded-lg">
           <h4 className="text-sm font-medium text-white mb-2">Selected Model Details</h4>
           {(() => {
-            const model = models.find(m => m.id === selectedModel);
+            const model = modelArray.find(m => m.id === selectedModel);
             if (!model) return null;
             return (
               <div className="space-y-2 text-sm">
-                <p className="text-gray-300">{model.description}</p>
+                {model.description && (
+                  <p className="text-gray-300">{model.description}</p>
+                )}
                 <div className="flex justify-between text-gray-400">
-                  <span>Context Length: {model.context_length.toLocaleString()} tokens</span>
-                  <span>
-                    Price: ${model.pricing.prompt.toFixed(4)}/1K prompt, 
-                    ${model.pricing.completion.toFixed(4)}/1K completion
-                  </span>
+                  {model.context_length && (
+                    <span>Context Length: {model.context_length.toLocaleString()} tokens</span>
+                  )}
+                  {model.pricing && (
+                    <span>
+                      Price: ${model.pricing.prompt.toFixed(4)}/1K prompt, 
+                      ${model.pricing.completion.toFixed(4)}/1K completion
+                    </span>
+                  )}
                 </div>
               </div>
             );

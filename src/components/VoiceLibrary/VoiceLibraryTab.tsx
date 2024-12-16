@@ -6,7 +6,7 @@ import { VoiceFilters } from './VoiceFilters';
 import { AddVoiceCloneModal } from './AddVoiceCloneModal';
 import { VoiceDetailsModal } from './VoiceDetailsModal';
 import type { Voice, Provider } from './types';
-import { elevenLabsService } from '@/services/elevenLabs';
+import { elevenLabsService } from '@/services/elevenlabs';
 import { deepgramApi } from '@/services/deepgram';
 import { playhtApi } from '@/services/playht';
 import { cartesiaApi } from '@/services/cartesia';

@@ -1,5 +1,6 @@
 import axios from 'axios';
 import type { ElevenLabsVoice, ElevenLabsResponse } from '@/types/elevenLabs';
+import type { Voice } from '@/components/VoiceLibrary/types';
 
 const ELEVEN_LABS_API_URL = 'https://api.elevenlabs.io/v1';
 
@@ -20,7 +21,42 @@ class ElevenLabsService {
     };
   }
 
-  async getAllVoices(): Promise<ElevenLabsVoice[]> {
+  private mapToVoice(voice: ElevenLabsVoice): Voice {
+    return {
+      id: voice.voice_id,
+      name: voice.name,
+      provider: 'elevenlabs',
+      language: voice.labels?.language || 'en',
+      gender: voice.labels?.gender || 'unknown',
+      traits: Object.entries(voice.labels || {})
+        .filter(([key]) => !['language', 'gender'].includes(key))
+        .map(([key, value]) => `${key}: ${value}`),
+      preview_url: voice.preview_url
+    };
+  }
+
+  async getVoices(): Promise<Voice[]> {
+    try {
+      const voices = await this.getAllVoices();
+      return voices.map(this.mapToVoice);
+    } catch (error) {
+      console.error('Error fetching ElevenLabs voices:', error);
+      throw error;
+    }
+  }
+
+  async getVoice(voiceId: string): Promise<Voice | null> {
+    try {
+      const voices = await this.getAllVoices();
+      const voice = voices.find(v => v.voice_id === voiceId);
+      return voice ? this.mapToVoice(voice) : null;
+    } catch (error) {
+      console.error('Error fetching ElevenLabs voice:', error);
+      throw error;
+    }
+  }
+
+  private async getAllVoices(): Promise<ElevenLabsVoice[]> {
     try {
       console.log('Making request to ElevenLabs API...');
       console.log('API URL:', `${ELEVEN_LABS_API_URL}/voices`);

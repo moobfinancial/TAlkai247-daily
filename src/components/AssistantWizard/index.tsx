@@ -15,10 +15,20 @@ interface Assistant {
   systemPrompt: string;
   provider: string;
   model: string;
-  tools: string[];
-  voiceProvider?: string;
-  voiceId?: string;
-  volume?: number;
+  tools: {
+    id: string;
+    config: Record<string, any>;
+  }[];
+  voice: {
+    provider: string | null;
+    voiceId: string | null;
+    settings: {
+      volume: number;
+      speed: number;
+      pitch: number;
+      stability: number;
+    };
+  };
 }
 
 interface AssistantWizardProps {
@@ -44,7 +54,9 @@ export default function AssistantWizard({ onClose, onComplete }: AssistantWizard
     template: null,
     voiceProvider: '',
     voiceId: '',
-    volume: 75
+    volume: 75,
+    provider: '',
+    model: ''
   });
 
   const handleTemplateSelect = (template: any) => {
@@ -77,9 +89,23 @@ export default function AssistantWizard({ onClose, onComplete }: AssistantWizard
   const handleCreate = () => {
     const assistant: Assistant = {
       id: Math.random().toString(36).substr(2, 9),
-      modes: ['Web', 'Voice'],
-      provider: 'groq',
-      model: 'llama3-70b-8192',
+      modes: ['web', 'voice'],
+      provider: formData.provider,
+      model: formData.model,
+      tools: formData.tools.map(tool => ({
+        id: tool,
+        config: {}
+      })),
+      voice: {
+        provider: formData.voiceProvider || null,
+        voiceId: formData.voiceId || null,
+        settings: {
+          volume: formData.volume || 100,
+          speed: 1,
+          pitch: 1,
+          stability: 0.75
+        }
+      },
       ...formData
     };
     onComplete(assistant);

@@ -1,4 +1,7 @@
 import React from 'react';
+import ModelSelection from '@/components/LLM/ModelSelection';
+import { useModelList } from '@/hooks/useModelList';
+import toast from '@/components/Toast';
 
 interface CustomizeAssistantProps {
   formData: any;
@@ -10,6 +13,45 @@ export default function CustomizeAssistant({ formData, onNext, onBack }: Customi
   const [name, setName] = React.useState(formData.name || '');
   const [firstMessage, setFirstMessage] = React.useState(formData.firstMessage || '');
   const [systemPrompt, setSystemPrompt] = React.useState(formData.systemPrompt || '');
+  const [provider, setProvider] = React.useState(formData.provider || '');
+  const [model, setModel] = React.useState(formData.model || '');
+  
+  const { models, isLoading } = useModelList();
+
+  const handleNext = () => {
+    if (!name?.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter a name for your assistant",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!provider || !model) {
+      toast({
+        title: "Error",
+        description: "Please select both a provider and a model",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Normalize provider name
+    const normalizedProvider = provider.toLowerCase() === 'anthropic' ? 'Anthropic' :
+                             provider.toLowerCase() === 'openai' ? 'OpenAI' :
+                             provider.toLowerCase() === 'google' ? 'Google' :
+                             provider.charAt(0).toUpperCase() + provider.slice(1);
+
+    onNext({
+      ...formData, // Preserve existing data
+      name: name.trim(),
+      firstMessage: firstMessage?.trim() || '',
+      systemPrompt: systemPrompt?.trim() || '',
+      provider: normalizedProvider,
+      model: model
+    });
+  };
 
   return (
     <div className="space-y-6">
@@ -23,6 +65,15 @@ export default function CustomizeAssistant({ formData, onNext, onBack }: Customi
           placeholder="Enter assistant name"
         />
       </div>
+
+      <ModelSelection
+        selectedProvider={provider}
+        selectedModel={model}
+        onProviderChange={setProvider}
+        onModelChange={setModel}
+        availableModels={models || []}
+        className="mt-4"
+      />
 
       <div>
         <label className="block text-white mb-2">First Message</label>
@@ -52,8 +103,9 @@ export default function CustomizeAssistant({ formData, onNext, onBack }: Customi
           Back
         </button>
         <button
-          onClick={() => onNext({ name, firstMessage, systemPrompt })}
+          onClick={handleNext}
           className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700"
+          disabled={!name || !provider || !model}
         >
           Next
         </button>
