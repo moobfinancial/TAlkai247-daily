@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PlayCircle, PauseCircle, Copy } from 'lucide-react';
-import { elevenLabsService } from '@/services/elevenLabs';
+import { elevenLabsService } from '@/services/elevenlabs';
 import { deepgramApi } from '@/services/deepgram';
 import { playhtApi } from '@/services/playht';
 import { cartesiaApi } from '@/services/cartesia';

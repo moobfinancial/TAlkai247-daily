@@ -1,4 +1,5 @@
 import axios from 'axios';
+import type { Voice } from '@/components/VoiceLibrary/types';
 
 const PROXY_URL = 'http://localhost:3000/api';
 
@@ -16,10 +17,23 @@ export const deepgramApi = {
   /**
    * Fetch available voices from Deepgram
    */
-  async getVoices(): Promise<DeepgramVoice[]> {
+  async getVoices(): Promise<Voice[]> {
     try {
       const response = await axios.get(`${PROXY_URL}/deepgram/voices`);
-      return response.data;
+      const voices: DeepgramVoice[] = response.data;
+
+      // Map Deepgram voices to our Voice interface
+      return voices.map(voice => ({
+        id: voice.model_id,
+        name: voice.name,
+        gender: voice.gender,
+        language: voice.language,
+        provider: 'deepgram',
+        traits: voice.description ? [voice.description] : [],
+        preview_url: voice.preview_url,
+        deepgram_id: voice.model_id,
+        nationality: '',
+      }));
     } catch (error) {
       console.error('Error fetching Deepgram voices:', error);
       throw error;
@@ -56,7 +70,7 @@ export const deepgramApi = {
   async previewVoice(voiceId: string): Promise<ArrayBuffer> {
     try {
       const voices = await this.getVoices();
-      const voice = voices.find(v => v.model_id === voiceId);
+      const voice = voices.find(v => v.deepgram_id === voiceId);
       
       if (!voice?.preview_url) {
         throw new Error('No preview URL available for this voice');

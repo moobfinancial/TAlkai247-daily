@@ -26,6 +26,7 @@ model User {
   templates     WhisperTemplate[]
   campaigns     Campaign[]
   resources     Resource[]
+  assistantTemplates AssistantTemplate[]
 }
 
 enum UserRole {
@@ -37,6 +38,7 @@ enum UserRole {
 model Assistant {
   id           String    @id @default(cuid())
   userId       String
+  user         User      @relation(fields: [userId], references: [id])
   name         String
   modes        String[]  // Array of modes (web, voice)
   firstMessage String
@@ -49,9 +51,6 @@ model Assistant {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
   calls        Call[]
-  user         User      @relation(fields: [userId], references: [id])
-
-  @@index([userId])
 }
 
 // Contact model
@@ -144,6 +143,23 @@ model WhisperTemplate {
 enum TemplateType {
   BUSINESS
   PERSONAL
+}
+
+// Assistant Template model
+model AssistantTemplate {
+  id           String    @id @default(cuid())
+  name         String
+  description  String?
+  tags         String[]
+  type         String    // 'system' or 'user'
+  systemPrompt String    @db.Text
+  firstMessage String
+  tools        Json      // Array of tool configurations
+  isActive     Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  createdBy    String?   // userId of template creator (null for system templates)
+  user         User?     @relation(fields: [createdBy], references: [id])
 }
 
 // Campaign model

@@ -1,7 +1,6 @@
 import axios from 'axios';
 
-const OPENROUTER_API_KEY = import.meta.env.VITE_OPENROUTER_API_KEY;
-const OPENROUTER_BASE_URL = import.meta.env.VITE_OPENROUTER_BASE_URL;
+const API_URL = import.meta.env.VITE_API_URL;
 
 export interface Message {
   role: 'system' | 'user' | 'assistant';
@@ -74,19 +73,12 @@ export const openRouterApi = {
   async chat(options: CompletionOptions): Promise<ApiResponse<any>> {
     try {
       const response = await axios.post(
-        `${OPENROUTER_BASE_URL}/chat/completions`,
+        `${API_URL}/openrouter/chat`,
         {
           model: options.model,
           messages: options.messages,
           temperature: options.temperature ?? 0.7,
           max_tokens: options.max_tokens ?? 1000,
-        },
-        {
-          headers: {
-            'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
-            'HTTP-Referer': 'https://talkai247.com',
-            'X-Title': 'Talkai247'
-          }
         }
       );
 
@@ -106,23 +98,34 @@ export const openRouterApi = {
     }
   },
 
-  async getModels(): Promise<Model[]> {
+  async getModels(): Promise<ApiResponse<Model[]>> {
     try {
-      const response = await axios.get(`${OPENROUTER_BASE_URL}/models`, {
-        headers: {
-          'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
-        }
-      });
+      const response = await axios.get(`${API_URL}/openrouter/models`);
 
       if (!Array.isArray(response.data?.data)) {
-        console.error('Invalid response format from OpenRouter API');
-        return [];
+        return {
+          success: false,
+          error: {
+            code: 'INVALID_RESPONSE',
+            message: 'Invalid response format from OpenRouter API'
+          }
+        };
       }
 
-      return response.data.data.map(sanitizeModel);
+      return {
+        success: true,
+        data: response.data.data.map(sanitizeModel)
+      };
     } catch (error) {
-      console.error('Failed to fetch models:', error);
-      return [];
+      console.error('OpenRouter API Error:', error);
+      return {
+        success: false,
+        error: {
+          code: 'OPENROUTER_API_ERROR',
+          message: 'Failed to fetch models',
+          details: error instanceof Error ? error.message : String(error)
+        }
+      };
     }
   }
 };

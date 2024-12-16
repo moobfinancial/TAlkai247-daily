@@ -6,7 +6,7 @@ import { VoiceFilters } from './VoiceFilters';
 import { AddVoiceCloneModal } from './AddVoiceCloneModal';
 import { VoiceDetailsModal } from './VoiceDetailsModal';
 import type { Voice, Provider } from './types';
-import { elevenLabsService } from '@/services/elevenLabs';
+import { elevenLabsService } from '@/services/elevenlabs';
 
 const allLanguages = [
   "English", "Spanish (Spain)", "Spanish (Mexico)", "French (France)", "French (Canada)",

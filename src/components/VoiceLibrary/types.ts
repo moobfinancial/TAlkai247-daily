@@ -4,7 +4,7 @@ export interface Voice {
   gender: string;
   nationality: string;
   language: string;
-  provider: VoiceProvider;
+  provider: VoiceProvider | string; // Allow string for flexibility
   traits: string[];
   preview_url?: string;
   eleven_labs_id?: string;
@@ -22,4 +22,4 @@ export interface Provider {
   languages: string[];
 };
 
-export type VoiceProvider = "11Labs" | "Deepgram" | "Playht" | "Talkai247" | "Azure" | "Cartesia";
+export type VoiceProvider = "11Labs" | "Deepgram" | "PlayHT" | "Talkai247" | "Azure" | "Cartesia";

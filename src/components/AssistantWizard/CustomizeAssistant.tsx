@@ -4,7 +4,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { openRouterApi } from '@/lib/api/openrouter';
-import { ModelSelector } from '../Assistants/ModelSelector';
+import ModelSelectionCard from '@/components/LLM/ModelSelectionCard';
 import type { Model } from '@/lib/api/openrouter';
 
 interface CustomizeAssistantProps {
@@ -27,18 +27,25 @@ export default function CustomizeAssistant({ formData, onNext, onBack }: Customi
   const [firstMessage, setFirstMessage] = useState(formData.firstMessage || '');
   const [systemPrompt, setSystemPrompt] = useState(formData.systemPrompt || '');
   const [selectedModel, setSelectedModel] = useState(formData.model || '');
-  const [selectedProvider, setSelectedProvider] = useState(formData.provider || 'all');
-  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedProvider, setSelectedProvider] = useState(formData.provider || '');
   const [models, setModels] = useState<Model[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchModels = async () => {
       try {
-        const fetchedModels = await openRouterApi.getModels();
-        setModels(fetchedModels);
+        setLoading(true);
+        setError(null);
+        const response = await openRouterApi.getModels();
+        if (response.success && Array.isArray(response.data)) {
+          setModels(response.data);
+        } else {
+          throw new Error(response.error?.message || 'Failed to fetch models');
+        }
       } catch (error) {
         console.error('Failed to fetch models:', error);
+        setError(error instanceof Error ? error.message : 'Failed to fetch models');
       } finally {
         setLoading(false);
       }
@@ -77,19 +84,15 @@ export default function CustomizeAssistant({ formData, onNext, onBack }: Customi
         />
       </div>
 
-      <div>
-        <Label className="text-white">Model Selection</Label>
-        <ModelSelector
-          models={models}
-          providers={providers}
-          selectedModel={selectedModel}
-          selectedProvider={selectedProvider}
-          searchTerm={searchTerm}
-          onSearch={setSearchTerm}
-          onProviderChange={setSelectedProvider}
-          onModelChange={setSelectedModel}
-        />
-      </div>
+      <ModelSelectionCard
+        models={models}
+        selectedProvider={selectedProvider}
+        selectedModel={selectedModel}
+        onProviderChange={setSelectedProvider}
+        onModelChange={setSelectedModel}
+        loading={loading}
+        error={error}
+      />
 
       <div>
         <Label className="text-white">First Message</Label>
@@ -106,23 +109,18 @@ export default function CustomizeAssistant({ formData, onNext, onBack }: Customi
         <Textarea
           value={systemPrompt}
           onChange={(e) => setSystemPrompt(e.target.value)}
-          className="bg-gray-700 text-white border-gray-600 min-h-[150px]"
+          className="bg-gray-700 text-white border-gray-600 min-h-[100px]"
           placeholder="Enter the system prompt that defines your assistant's behavior"
         />
       </div>
 
       <div className="flex justify-between mt-8">
-        <Button
-          onClick={onBack}
-          variant="outline"
-          className="bg-gray-700 hover:bg-gray-600"
-        >
+        <Button variant="outline" onClick={onBack}>
           Back
         </Button>
-        <Button
+        <Button 
           onClick={handleNext}
-          className="bg-teal-600 hover:bg-teal-700"
-          disabled={!name || !selectedModel || !systemPrompt}
+          disabled={!name || !selectedProvider || !selectedModel}
         >
           Next
         </Button>
