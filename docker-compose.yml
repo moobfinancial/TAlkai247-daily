@@ -1,0 +1,26 @@
+version: '3'
+services:
+  livekit:
+    image: livekit/livekit-server
+    ports:
+      - "7880:7880"
+      - "7881:7881"
+      - "7882:7882"
+      - "50000-50100:50000-50100/udp"
+    command: >
+      --dev 
+      --bind 0.0.0.0 
+      --node-ip host.docker.internal
+      --udp-port=50000-50100
+      --enable-prometheus=false
+    environment:
+      LIVEKIT_KEYS: "devkey:secret"
+      LIVEKIT_PORT: "7880"
+    networks:
+      - livekit-network
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+networks:
+  livekit-network:
+    driver: bridge
