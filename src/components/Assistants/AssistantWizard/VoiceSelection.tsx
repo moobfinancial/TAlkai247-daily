@@ -1,18 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Slider } from "@/components/ui/slider";
-import { Play, Volume2, PauseCircle } from 'lucide-react';
+import { Play, Volume2, PauseCircle } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/use-toast";
-import { cartesiaApi } from '@/services/cartesia';
-import { elevenLabsService } from '@/services/elevenlabs';
-import { playhtApi } from '@/services/playht';
-import { deepgramApi } from '@/services/deepgram';
-import { Voice } from '@/components/VoiceLibrary/types';
+import { cartesiaApi } from "@/services/cartesia";
+import { elevenLabsService } from "@/services/elevenLabs";
+import { playhtApi } from "@/services/playht";
+import { deepgramApi } from "@/services/deepgram";
+import { Voice } from "@/components/VoiceLibrary/types";
 
 interface VoiceSettings {
   speed: number;
@@ -33,43 +33,50 @@ interface VoiceSelectionProps {
   onBack: () => void;
 }
 
-export default function VoiceSelection({ formData, onNext, onBack }: VoiceSelectionProps) {
+export default function VoiceSelection({
+  formData,
+  onNext,
+  onBack,
+}: VoiceSelectionProps) {
   const [selectedVoice, setSelectedVoice] = useState<Voice | null>(null);
   const [voiceSettings, setVoiceSettings] = useState<VoiceSettings>({
     speed: 1.0,
     pitch: 1.0,
     stability: 0.75,
-    volume: formData.voice?.settings?.volume || 75
+    volume: formData.voice?.settings?.volume || 75,
   });
   const [isPlaying, setIsPlaying] = useState(false);
-  const [voicesByProvider, setVoicesByProvider] = useState<Record<string, Voice[]>>({});
-  const [customVoiceId, setCustomVoiceId] = useState('');
-  const [customVoiceProvider, setCustomVoiceProvider] = useState('');
+  const [voicesByProvider, setVoicesByProvider] = useState<
+    Record<string, Voice[]>
+  >({});
+  const [customVoiceId, setCustomVoiceId] = useState("");
+  const [customVoiceProvider, setCustomVoiceProvider] = useState("");
   const { toast } = useToast();
 
   // Fetch voices from all providers
   useEffect(() => {
     const fetchVoices = async () => {
       try {
-        const [cartesiaVoices, elevenLabsVoices, playhtVoices, deepgramVoices] = await Promise.all([
-          cartesiaApi.getVoices(),
-          elevenLabsService.getVoices(),
-          playhtApi.getVoices(),
-          deepgramApi.getVoices()
-        ]);
+        const [cartesiaVoices, elevenLabsVoices, playhtVoices, deepgramVoices] =
+          await Promise.all([
+            cartesiaApi.getVoices(),
+            elevenLabsService.getVoices(),
+            playhtApi.getVoices(),
+            deepgramApi.getVoices(),
+          ]);
 
         setVoicesByProvider({
           Cartesia: cartesiaVoices.slice(0, 10),
           ElevenLabs: elevenLabsVoices.slice(0, 10),
           PlayHT: playhtVoices.slice(0, 10),
-          Deepgram: deepgramVoices.slice(0, 10)
+          Deepgram: deepgramVoices.slice(0, 10),
         });
       } catch (error) {
-        console.error('Error fetching voices:', error);
+        console.error("Error fetching voices:", error);
         toast({
           title: "Error",
           description: "Failed to fetch available voices",
-          variant: "destructive"
+          variant: "destructive",
         });
       }
     };
@@ -83,26 +90,33 @@ export default function VoiceSelection({ formData, onNext, onBack }: VoiceSelect
     setIsPlaying(true);
     try {
       let audioBuffer: ArrayBuffer;
-      
+
       switch (selectedVoice.provider.toLowerCase()) {
-        case 'cartesia':
-          audioBuffer = await cartesiaApi.previewVoice(selectedVoice.id, selectedVoice.preview_url);
+        case "cartesia":
+          audioBuffer = await cartesiaApi.previewVoice(
+            selectedVoice.id
+            // selectedVoice.preview_url
+          );
           break;
-        case 'elevenlabs':
-          audioBuffer = await elevenLabsService.previewVoice(selectedVoice.id, selectedVoice.preview_url);
+        case "elevenlabs":
+          audioBuffer = await elevenLabsService.previewVoice(
+            selectedVoice.id,
+            selectedVoice.preview_url
+          );
           break;
-        case 'playht':
+        case "playht":
           audioBuffer = await playhtApi.previewVoice(selectedVoice.id);
           break;
-        case 'deepgram':
+        case "deepgram":
           audioBuffer = await deepgramApi.previewVoice(selectedVoice.id);
           break;
         default:
-          throw new Error('Unsupported provider');
+          throw new Error("Unsupported provider");
       }
 
       // Create an audio context and play the buffer
-      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      const audioContext = new (window.AudioContext ||
+        window.webkitAudioContext)();
       const source = audioContext.createBufferSource();
       const audioData = await audioContext.decodeAudioData(audioBuffer);
       source.buffer = audioData;
@@ -118,27 +132,27 @@ export default function VoiceSelection({ formData, onNext, onBack }: VoiceSelect
         description: `Playing sample for ${selectedVoice.name}`,
       });
     } catch (error) {
-      console.error('Error playing sample:', error);
+      console.error("Error playing sample:", error);
       toast({
         title: "Error",
         description: "Failed to play voice sample",
-        variant: "destructive"
+        variant: "destructive",
       });
       setIsPlaying(false);
     }
   };
 
   const handleVoiceSelect = (voice: Voice) => {
-    console.log('Selected voice:', voice);
+    console.log("Selected voice:", voice);
     setSelectedVoice(voice);
-    setCustomVoiceId('');
-    setCustomVoiceProvider('');
+    setCustomVoiceId("");
+    setCustomVoiceProvider("");
   };
 
   const handleVoiceSettings = (setting: keyof VoiceSettings, value: number) => {
-    setVoiceSettings(prev => ({
+    setVoiceSettings((prev) => ({
       ...prev,
-      [setting]: value
+      [setting]: value,
     }));
   };
 
@@ -147,30 +161,30 @@ export default function VoiceSelection({ formData, onNext, onBack }: VoiceSelect
       toast({
         title: "Error",
         description: "Please enter both voice ID and provider",
-        variant: "destructive"
+        variant: "destructive",
       });
       return;
     }
 
     try {
       let voice: Voice | null = null;
-      
+
       // Fetch voice details based on provider
       switch (customVoiceProvider.toLowerCase()) {
-        case 'cartesia':
+        case "cartesia":
           voice = await cartesiaApi.getVoice(customVoiceId);
           break;
-        case 'elevenlabs':
+        case "elevenlabs":
           voice = await elevenLabsService.getVoice(customVoiceId);
           break;
-        case 'playht':
+        case "playht":
           voice = await playhtApi.getVoice(customVoiceId);
           break;
-        case 'deepgram':
+        case "deepgram":
           voice = await deepgramApi.getVoice(customVoiceId);
           break;
         default:
-          throw new Error('Unsupported provider');
+          throw new Error("Unsupported provider");
       }
 
       if (voice) {
@@ -184,30 +198,38 @@ export default function VoiceSelection({ formData, onNext, onBack }: VoiceSelect
       toast({
         title: "Error",
         description: "Failed to find voice with provided ID",
-        variant: "destructive"
+        variant: "destructive",
       });
     }
   };
 
   const handleNext = () => {
     if (selectedVoice || customVoiceId) {
-      const provider = selectedVoice ? selectedVoice.provider : customVoiceProvider;
-      
-      // Normalize provider name - handle both cases
-      const normalizedProvider = provider.toLowerCase() === 'playht' || provider === 'Playht' ? 'PlayHT' :
-                               provider.toLowerCase() === 'elevenlabs' || provider === '11Labs' ? 'ElevenLabs' :
-                               provider.toLowerCase() === 'deepgram' ? 'Deepgram' :
-                               provider.toLowerCase() === 'cartesia' ? 'Cartesia' : provider;
+      const provider = selectedVoice
+        ? selectedVoice.provider
+        : customVoiceProvider;
 
-      console.log('Selected voice provider:', provider);
-      console.log('Normalized provider:', normalizedProvider);
-      
+      // Normalize provider name - handle both cases
+      const normalizedProvider =
+        provider.toLowerCase() === "playht" || provider === "Playht"
+          ? "PlayHT"
+          : provider.toLowerCase() === "elevenlabs" || provider === "11Labs"
+          ? "ElevenLabs"
+          : provider.toLowerCase() === "deepgram"
+          ? "Deepgram"
+          : provider.toLowerCase() === "cartesia"
+          ? "Cartesia"
+          : provider;
+
+      console.log("Selected voice provider:", provider);
+      console.log("Normalized provider:", normalizedProvider);
+
       onNext({
         voice: {
           provider: normalizedProvider,
           voiceId: selectedVoice ? selectedVoice.id : customVoiceId,
-          settings: voiceSettings
-        }
+          settings: voiceSettings,
+        },
       });
     } else {
       // If no voice is selected, pass null to disable voice
@@ -235,22 +257,28 @@ export default function VoiceSelection({ formData, onNext, onBack }: VoiceSelect
                     key={voice.id}
                     className={`p-4 cursor-pointer transition-colors ${
                       selectedVoice?.id === voice.id
-                        ? 'bg-teal-600'
-                        : 'bg-gray-700 hover:bg-gray-600'
+                        ? "bg-teal-600"
+                        : "bg-gray-700 hover:bg-gray-600"
                     }`}
                     onClick={() => handleVoiceSelect(voice)}
                   >
                     <div className="flex justify-between items-start mb-2">
                       <div>
-                        <h4 className="text-lg font-semibold text-white">{voice.name}</h4>
-                        <span className="text-sm text-gray-400">{voice.language}</span>
+                        <h4 className="text-lg font-semibold text-white">
+                          {voice.name}
+                        </h4>
+                        <span className="text-sm text-gray-400">
+                          {voice.language}
+                        </span>
                       </div>
                       <Badge variant="secondary">{voice.gender}</Badge>
                     </div>
                     {voice.traits && (
                       <div className="flex flex-wrap gap-1 mt-2">
                         {voice.traits.map((trait) => (
-                          <Badge key={`${voice.id}-${trait}`} variant="outline">{trait}</Badge>
+                          <Badge key={`${voice.id}-${trait}`} variant="outline">
+                            {trait}
+                          </Badge>
                         ))}
                       </div>
                     )}
@@ -281,9 +309,7 @@ export default function VoiceSelection({ formData, onNext, onBack }: VoiceSelect
                 className="bg-gray-700 text-white border-gray-600"
               />
             </div>
-            <Button onClick={handleCustomVoiceSubmit}>
-              Verify Voice ID
-            </Button>
+            <Button onClick={handleCustomVoiceSubmit}>Verify Voice ID</Button>
           </div>
         </TabsContent>
       </Tabs>
@@ -291,33 +317,43 @@ export default function VoiceSelection({ formData, onNext, onBack }: VoiceSelect
       {selectedVoice && (
         <div className="space-y-4">
           <Card className="p-4 bg-gray-700">
-            <h3 className="text-lg font-semibold text-white mb-4">Voice Settings</h3>
+            <h3 className="text-lg font-semibold text-white mb-4">
+              Voice Settings
+            </h3>
             <div className="space-y-6">
               <div>
                 <div className="flex justify-between">
                   <Label className="text-white">Speed</Label>
-                  <span className="text-sm text-gray-400">{voiceSettings.speed}x</span>
+                  <span className="text-sm text-gray-400">
+                    {voiceSettings.speed}x
+                  </span>
                 </div>
                 <Slider
                   value={[voiceSettings.speed]}
                   min={0.25}
                   max={4.0}
                   step={0.25}
-                  onValueChange={([value]) => handleVoiceSettings('speed', value)}
+                  onValueChange={([value]) =>
+                    handleVoiceSettings("speed", value)
+                  }
                 />
               </div>
 
               <div>
                 <div className="flex justify-between">
                   <Label className="text-white">Pitch</Label>
-                  <span className="text-sm text-gray-400">{voiceSettings.pitch}x</span>
+                  <span className="text-sm text-gray-400">
+                    {voiceSettings.pitch}x
+                  </span>
                 </div>
                 <Slider
                   value={[voiceSettings.pitch]}
                   min={0.5}
                   max={2.0}
                   step={0.1}
-                  onValueChange={([value]) => handleVoiceSettings('pitch', value)}
+                  onValueChange={([value]) =>
+                    handleVoiceSettings("pitch", value)
+                  }
                 />
               </div>
 
@@ -333,21 +369,27 @@ export default function VoiceSelection({ formData, onNext, onBack }: VoiceSelect
                   min={0}
                   max={1}
                   step={0.1}
-                  onValueChange={([value]) => handleVoiceSettings('stability', value)}
+                  onValueChange={([value]) =>
+                    handleVoiceSettings("stability", value)
+                  }
                 />
               </div>
 
               <div>
                 <div className="flex justify-between">
                   <Label className="text-white">Volume</Label>
-                  <span className="text-sm text-gray-400">{voiceSettings.volume}%</span>
+                  <span className="text-sm text-gray-400">
+                    {voiceSettings.volume}%
+                  </span>
                 </div>
                 <Slider
                   value={[voiceSettings.volume]}
                   min={0}
                   max={100}
                   step={1}
-                  onValueChange={([value]) => handleVoiceSettings('volume', value)}
+                  onValueChange={([value]) =>
+                    handleVoiceSettings("volume", value)
+                  }
                 />
               </div>
             </div>
@@ -360,7 +402,11 @@ export default function VoiceSelection({ formData, onNext, onBack }: VoiceSelect
               onClick={playVoiceSample}
               disabled={isPlaying}
             >
-              {isPlaying ? <PauseCircle className="h-6 w-6" /> : <Play className="h-6 w-6" />}
+              {isPlaying ? (
+                <PauseCircle className="h-6 w-6" />
+              ) : (
+                <Play className="h-6 w-6" />
+              )}
             </Button>
           </div>
         </div>
@@ -370,7 +416,10 @@ export default function VoiceSelection({ formData, onNext, onBack }: VoiceSelect
         <Button variant="outline" onClick={onBack}>
           Back
         </Button>
-        <Button onClick={handleNext} disabled={!selectedVoice && !customVoiceId}>
+        <Button
+          onClick={handleNext}
+          disabled={!selectedVoice && !customVoiceId}
+        >
           Next
         </Button>
       </div>

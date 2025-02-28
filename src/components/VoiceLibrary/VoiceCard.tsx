@@ -1,14 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { PlayCircle, PauseCircle, Copy } from 'lucide-react';
-import { elevenLabsService } from '@/services/elevenlabs';
-import { deepgramApi } from '@/services/deepgram';
-import { playhtApi } from '@/services/playht';
-import { cartesiaApi } from '@/services/cartesia';
-import type { Voice } from './types';
-import { toast } from '@/components/ui/use-toast';
+import { PlayCircle, PauseCircle, Copy } from "lucide-react";
+import { elevenLabsService } from "@/services/elevenLabs";
+import { deepgramApi } from "@/services/deepgram";
+import { playhtApi } from "@/services/playht";
+import { cartesiaApi } from "@/services/cartesia";
+import type { Voice } from "./types";
+import { toast } from "@/components/ui/use-toast";
 
 interface Voice {
   id: number | string;
@@ -34,7 +34,9 @@ interface VoiceCardProps {
 
 export function VoiceCard({ voice, onSelect }: VoiceCardProps) {
   const [isPlaying, setIsPlaying] = useState(false);
-  const [audioElement, setAudioElement] = useState<HTMLAudioElement | null>(null);
+  const [audioElement, setAudioElement] = useState<HTMLAudioElement | null>(
+    null
+  );
 
   const handlePreview = async () => {
     try {
@@ -50,10 +52,13 @@ export function VoiceCard({ voice, onSelect }: VoiceCardProps) {
       });
 
       let audioData: ArrayBuffer;
-      
+
       switch (voice.provider) {
         case "ElevenLabs":
-          audioData = await elevenLabsService.previewVoice(voice.eleven_labs_id!, voice.preview_url);
+          audioData = await elevenLabsService.previewVoice(
+            voice.eleven_labs_id!,
+            voice.preview_url
+          );
           break;
         case "Deepgram":
           audioData = await deepgramApi.previewVoice(voice.deepgram_id!);
@@ -62,31 +67,34 @@ export function VoiceCard({ voice, onSelect }: VoiceCardProps) {
           audioData = await playhtApi.previewVoice(voice.playht_id!);
           break;
         case "Cartesia":
-          audioData = await cartesiaApi.previewVoice(voice.cartesia_id!, voice.preview_url);
+          audioData = await cartesiaApi.previewVoice(
+            voice.cartesia_id!,
+            voice.preview_url
+          );
           break;
         default:
           throw new Error(`Unsupported provider: ${voice.provider}`);
       }
 
-      const blob = new Blob([audioData], { type: 'audio/mpeg' });
+      const blob = new Blob([audioData], { type: "audio/mpeg" });
       const url = URL.createObjectURL(blob);
-      
+
       const audio = new Audio(url);
       audio.onended = () => {
         setIsPlaying(false);
         URL.revokeObjectURL(url);
       };
-      
+
       if (audioElement) {
         audioElement.pause();
         URL.revokeObjectURL(audioElement.src);
       }
-      
+
       setAudioElement(audio);
       await audio.play();
       setIsPlaying(true);
     } catch (error) {
-      console.error('Error playing preview:', error);
+      console.error("Error playing preview:", error);
       toast({
         title: "Error",
         description: "Failed to play voice preview. Please try again later.",
@@ -104,28 +112,46 @@ export function VoiceCard({ voice, onSelect }: VoiceCardProps) {
             <h3 className="text-lg font-semibold text-white">{voice.name}</h3>
             <span className="text-sm text-gray-400">{voice.nationality}</span>
           </div>
-          <Badge variant={voice.provider === "Cartesia" ? "secondary" : "destructive"}>
+          <Badge
+            variant={
+              voice.provider === "Cartesia" ? "secondary" : "destructive"
+            }
+          >
             {voice.provider}
           </Badge>
         </div>
-        
+
         <div className="space-y-2 mb-4">
-          <p className="text-sm text-gray-400">{voice.gender} • {voice.language}</p>
+          <p className="text-sm text-gray-400">
+            {voice.gender} • {voice.language}
+          </p>
           {voice.category && (
             <p className="text-xs text-gray-500">Category: {voice.category}</p>
           )}
           <div className="flex items-center gap-2">
             <p className="text-xs text-gray-500">
-              ID: {voice.cartesia_id || voice.eleven_labs_id || voice.deepgram_id || voice.playht_id || 'N/A'}
+              ID:{" "}
+              {voice.cartesia_id ||
+                voice.eleven_labs_id ||
+                voice.deepgram_id ||
+                voice.playht_id ||
+                "N/A"}
             </p>
-            {(voice.cartesia_id || voice.eleven_labs_id || voice.deepgram_id || voice.playht_id) && (
+            {(voice.cartesia_id ||
+              voice.eleven_labs_id ||
+              voice.deepgram_id ||
+              voice.playht_id) && (
               <Button
                 size="sm"
                 variant="ghost"
                 className="h-6 p-1"
                 onClick={(e) => {
                   e.stopPropagation();
-                  const id = voice.cartesia_id || voice.eleven_labs_id || voice.deepgram_id || voice.playht_id;
+                  const id =
+                    voice.cartesia_id ||
+                    voice.eleven_labs_id ||
+                    voice.deepgram_id ||
+                    voice.playht_id;
                   navigator.clipboard.writeText(id!);
                   toast({
                     title: "Copied!",
@@ -137,11 +163,12 @@ export function VoiceCard({ voice, onSelect }: VoiceCardProps) {
               </Button>
             )}
           </div>
-          {voice.available_for_tiers && voice.available_for_tiers.length > 0 && (
-            <p className="text-xs text-gray-500">
-              Available for: {voice.available_for_tiers.join(', ')}
-            </p>
-          )}
+          {voice.available_for_tiers &&
+            voice.available_for_tiers.length > 0 && (
+              <p className="text-xs text-gray-500">
+                Available for: {voice.available_for_tiers.join(", ")}
+              </p>
+            )}
           <div className="flex flex-wrap gap-1">
             {voice.traits.map((trait, index) => (
               <Badge key={index} variant="outline" className="bg-gray-700">
@@ -152,26 +179,34 @@ export function VoiceCard({ voice, onSelect }: VoiceCardProps) {
         </div>
 
         <div className="flex justify-between">
-          <Button 
-            size="sm" 
-            variant="secondary" 
+          <Button
+            size="sm"
+            variant="secondary"
             className="w-24"
             onClick={(e) => {
               e.stopPropagation();
               handlePreview();
             }}
             disabled={voice.provider === "Cartesia"}
-            title={voice.provider === "Cartesia" ? "Preview not available for Cartesia voices" : ""}
+            title={
+              voice.provider === "Cartesia"
+                ? "Preview not available for Cartesia voices"
+                : ""
+            }
           >
             {isPlaying ? (
-              <><PauseCircle className="w-4 h-4 mr-2" /> Pause</>
+              <>
+                <PauseCircle className="w-4 h-4 mr-2" /> Pause
+              </>
             ) : (
-              <><PlayCircle className="w-4 h-4 mr-2" /> Play</>
+              <>
+                <PlayCircle className="w-4 h-4 mr-2" /> Play
+              </>
             )}
           </Button>
-          <Button 
-            size="sm" 
-            variant="default" 
+          <Button
+            size="sm"
+            variant="default"
             className="w-24"
             onClick={() => onSelect(voice)}
           >

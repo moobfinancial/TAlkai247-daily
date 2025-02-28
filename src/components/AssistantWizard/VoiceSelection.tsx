@@ -1,18 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Slider } from "@/components/ui/slider";
-import { Play, Volume2, PauseCircle } from 'lucide-react';
+import { Play, Volume2, PauseCircle } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/use-toast";
-import { cartesiaApi } from '@/services/cartesia';
-import { elevenLabsService } from '@/services/elevenlabs';
-import { playhtApi } from '@/services/playht';
-import { deepgramApi } from '@/services/deepgram';
-import { Voice } from '@/components/VoiceLibrary/types';
+import { cartesiaApi } from "@/services/cartesia";
+import { elevenLabsService } from "@/services/elevenLabs";
+import { playhtApi } from "@/services/playht";
+import { deepgramApi } from "@/services/deepgram";
+import { Voice } from "@/components/VoiceLibrary/types";
 
 interface VoiceSelectionProps {
   formData: any;
@@ -20,15 +20,23 @@ interface VoiceSelectionProps {
   onBack: () => void;
 }
 
-export default function VoiceSelection({ formData, onNext, onBack }: VoiceSelectionProps) {
+export default function VoiceSelection({
+  formData,
+  onNext,
+  onBack,
+}: VoiceSelectionProps) {
   const [selectedVoice, setSelectedVoice] = useState<Voice | null>(null);
   const [volume, setVolume] = useState<number>(formData.volume || 75);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [voicesByProvider, setVoicesByProvider] = useState<Record<string, Voice[]>>({});
-  const [customVoiceId, setCustomVoiceId] = useState('');
-  const [customVoiceProvider, setCustomVoiceProvider] = useState('');
+  const [voicesByProvider, setVoicesByProvider] = useState<
+    Record<string, Voice[]>
+  >({});
+  const [customVoiceId, setCustomVoiceId] = useState("");
+  const [customVoiceProvider, setCustomVoiceProvider] = useState("");
   const [playingVoiceId, setPlayingVoiceId] = useState<string | null>(null);
-  const [currentAudio, setCurrentAudio] = useState<HTMLAudioElement | null>(null);
+  const [currentAudio, setCurrentAudio] = useState<HTMLAudioElement | null>(
+    null
+  );
   const [selectedProvider, setSelectedProvider] = useState<string | null>(null);
   const { toast } = useToast();
 
@@ -36,25 +44,26 @@ export default function VoiceSelection({ formData, onNext, onBack }: VoiceSelect
   useEffect(() => {
     const fetchVoices = async () => {
       try {
-        const [cartesiaVoices, elevenLabsVoices, playhtVoices, deepgramVoices] = await Promise.all([
-          cartesiaApi.getVoices(),
-          elevenLabsService.getVoices(),
-          playhtApi.getVoices(),
-          deepgramApi.getVoices()
-        ]);
+        const [cartesiaVoices, elevenLabsVoices, playhtVoices, deepgramVoices] =
+          await Promise.all([
+            cartesiaApi.getVoices(),
+            elevenLabsService.getVoices(),
+            playhtApi.getVoices(),
+            deepgramApi.getVoices(),
+          ]);
 
         setVoicesByProvider({
           Cartesia: cartesiaVoices.slice(0, 10),
           ElevenLabs: elevenLabsVoices.slice(0, 10),
           PlayHT: playhtVoices.slice(0, 10),
-          Deepgram: deepgramVoices.slice(0, 10)
+          Deepgram: deepgramVoices.slice(0, 10),
         });
       } catch (error) {
-        console.error('Error fetching voices:', error);
+        console.error("Error fetching voices:", error);
         toast({
           title: "Error",
           description: "Failed to fetch voices. Please try again.",
-          variant: "destructive"
+          variant: "destructive",
         });
       }
     };
@@ -74,7 +83,7 @@ export default function VoiceSelection({ formData, onNext, onBack }: VoiceSelect
 
   const playVoiceSample = async (voice: Voice, e: React.MouseEvent) => {
     e.stopPropagation();
-    
+
     // If this voice is already playing, stop it
     if (playingVoiceId === voice.id) {
       stopCurrentAudio();
@@ -90,88 +99,93 @@ export default function VoiceSelection({ formData, onNext, onBack }: VoiceSelect
 
       // Get the sample URL based on provider
       switch (voice.provider.toLowerCase()) {
-        case 'elevenlabs':
+        case "elevenlabs":
           sampleUrl = voice.preview_url || null;
           if (!sampleUrl) {
-            throw new Error('No sample available for this ElevenLabs voice');
+            throw new Error("No sample available for this ElevenLabs voice");
           }
           break;
 
-        case 'playht':
+        case "playht":
           // PlayHT might have samples in different fields
-          sampleUrl = voice.preview_url || 
-                     (Array.isArray(voice.samples) && voice.samples[0]) || 
-                     null;
+          sampleUrl =
+            voice.preview_url ||
+            (Array.isArray(voice.samples) && voice.samples[0]) ||
+            null;
           if (!sampleUrl) {
-            throw new Error('No sample available for this PlayHT voice');
+            throw new Error("No sample available for this PlayHT voice");
           }
           break;
 
-        case 'deepgram':
+        case "deepgram":
           sampleUrl = voice.preview_url || null;
           if (!sampleUrl) {
-            throw new Error('No sample available for this Deepgram voice');
+            throw new Error("No sample available for this Deepgram voice");
           }
           break;
 
-        case 'cartesia':
-          throw new Error('Voice samples not available for Cartesia voices');
+        case "cartesia":
+          throw new Error("Voice samples not available for Cartesia voices");
 
         default:
-          throw new Error('Unsupported voice provider');
+          throw new Error("Unsupported voice provider");
       }
 
       if (sampleUrl) {
-        console.log('Playing sample from URL:', sampleUrl);
+        console.log("Playing sample from URL:", sampleUrl);
         const audio = new Audio(sampleUrl);
         audio.volume = volume / 100;
-        
+
         // Store the audio element
         setCurrentAudio(audio);
-        
+
         // Wait for audio to load before playing
         await new Promise((resolve, reject) => {
           audio.oncanplaythrough = resolve;
-          audio.onerror = () => reject(new Error('Failed to load audio sample'));
+          audio.onerror = () =>
+            reject(new Error("Failed to load audio sample"));
           audio.load();
         });
 
         await audio.play();
-        
+
         audio.onended = () => {
-          console.log('Audio playback ended');
+          console.log("Audio playback ended");
           setPlayingVoiceId(null);
           setCurrentAudio(null);
         };
-        
+
         audio.onerror = (e) => {
-          console.error('Audio playback error:', e);
+          console.error("Audio playback error:", e);
           setPlayingVoiceId(null);
           setCurrentAudio(null);
           toast({
             title: "Error",
             description: "Failed to play voice sample",
-            variant: "destructive"
+            variant: "destructive",
           });
         };
       }
     } catch (error) {
-      console.error('Voice sample playback error:', error);
+      console.error("Voice sample playback error:", error);
       setPlayingVoiceId(null);
       setCurrentAudio(null);
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to play voice sample",
-        variant: "destructive"
+        description:
+          error instanceof Error
+            ? error.message
+            : "Failed to play voice sample",
+        variant: "destructive",
       });
     }
   };
 
   const handleVoiceSelect = (voice: Voice) => {
-    console.log('Selected voice:', voice);
+    console.log("Selected voice:", voice);
     setSelectedVoice(voice);
-    setCustomVoiceId('');
-    setCustomVoiceProvider('');
+    setCustomVoiceId("");
+    setCustomVoiceProvider("");
   };
 
   const handleCustomVoiceSubmit = async () => {
@@ -179,30 +193,30 @@ export default function VoiceSelection({ formData, onNext, onBack }: VoiceSelect
       toast({
         title: "Error",
         description: "Please enter both voice ID and provider",
-        variant: "destructive"
+        variant: "destructive",
       });
       return;
     }
 
     try {
       let voice: Voice | null = null;
-      
+
       // Fetch voice details based on provider
       switch (customVoiceProvider.toLowerCase()) {
-        case 'cartesia':
+        case "cartesia":
           voice = await cartesiaApi.getVoice(customVoiceId);
           break;
-        case 'elevenlabs':
+        case "elevenlabs":
           voice = await elevenLabsService.getVoice(customVoiceId);
           break;
-        case 'playht':
+        case "playht":
           voice = await playhtApi.getVoice(customVoiceId);
           break;
-        case 'deepgram':
+        case "deepgram":
           voice = await deepgramApi.getVoice(customVoiceId);
           break;
         default:
-          throw new Error('Unsupported provider');
+          throw new Error("Unsupported provider");
       }
 
       if (voice) {
@@ -216,7 +230,7 @@ export default function VoiceSelection({ formData, onNext, onBack }: VoiceSelect
       toast({
         title: "Error",
         description: "Failed to find voice with provided ID",
-        variant: "destructive"
+        variant: "destructive",
       });
     }
   };
@@ -226,7 +240,7 @@ export default function VoiceSelection({ formData, onNext, onBack }: VoiceSelect
       toast({
         title: "Error",
         description: "Please select a voice before continuing",
-        variant: "destructive"
+        variant: "destructive",
       });
       return;
     }
@@ -266,20 +280,24 @@ export default function VoiceSelection({ formData, onNext, onBack }: VoiceSelect
           {selectedProvider && (
             <div className="space-y-2">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {voicesByProvider[selectedProvider]?.map(voice => (
+                {voicesByProvider[selectedProvider]?.map((voice) => (
                   <Card
                     key={voice.id}
                     className={`p-4 cursor-pointer transition-colors ${
                       selectedVoice?.id === voice.id
-                        ? 'bg-teal-600'
-                        : 'bg-gray-700 hover:bg-gray-600'
+                        ? "bg-teal-600"
+                        : "bg-gray-700 hover:bg-gray-600"
                     }`}
                     onClick={() => handleVoiceSelect(voice)}
                   >
                     <div className="flex justify-between items-start mb-2">
                       <div>
-                        <h3 className="text-lg font-semibold text-white">{voice.name}</h3>
-                        <span className="text-sm text-gray-400">{voice.language}</span>
+                        <h3 className="text-lg font-semibold text-white">
+                          {voice.name}
+                        </h3>
+                        <span className="text-sm text-gray-400">
+                          {voice.language}
+                        </span>
                       </div>
                       <div className="flex items-center gap-2">
                         <Badge variant="secondary">{voice.gender}</Badge>
@@ -290,16 +308,22 @@ export default function VoiceSelection({ formData, onNext, onBack }: VoiceSelect
                           className="h-8 px-2"
                         >
                           {playingVoiceId === voice.id ? (
-                            <><PauseCircle className="w-4 h-4" /></>
+                            <>
+                              <PauseCircle className="w-4 h-4" />
+                            </>
                           ) : (
-                            <><Play className="w-4 h-4" /></>
+                            <>
+                              <Play className="w-4 h-4" />
+                            </>
                           )}
                         </Button>
                       </div>
                     </div>
                     <div className="flex flex-wrap gap-1 mt-2">
                       {voice.traits?.map((trait) => (
-                        <Badge key={`${voice.id}-${trait}`} variant="outline">{trait}</Badge>
+                        <Badge key={`${voice.id}-${trait}`} variant="outline">
+                          {trait}
+                        </Badge>
                       ))}
                     </div>
                   </Card>
@@ -336,9 +360,7 @@ export default function VoiceSelection({ formData, onNext, onBack }: VoiceSelect
                 className="bg-gray-700 text-white border-gray-600"
               />
             </div>
-            <Button onClick={handleCustomVoiceSubmit}>
-              Look Up Voice
-            </Button>
+            <Button onClick={handleCustomVoiceSubmit}>Look Up Voice</Button>
           </div>
         </TabsContent>
       </Tabs>
@@ -367,9 +389,7 @@ export default function VoiceSelection({ formData, onNext, onBack }: VoiceSelect
         <Button variant="outline" onClick={onBack}>
           Back
         </Button>
-        <Button onClick={handleNext}>
-          Next
-        </Button>
+        <Button onClick={handleNext}>Next</Button>
       </div>
     </div>
   );

@@ -1,5 +1,4 @@
-import React from 'react';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle } from "lucide-react";
 
 interface Assistant {
   name: string;
@@ -19,7 +18,12 @@ interface DeleteConfirmationProps {
   onConfirm: () => void;
 }
 
-export default function DeleteConfirmation({ isOpen, assistant, onClose, onConfirm }: DeleteConfirmationProps) {
+export default function DeleteConfirmation({
+  isOpen,
+  assistant,
+  onClose,
+  onConfirm,
+}: DeleteConfirmationProps) {
   if (!isOpen || !assistant) return null;
 
   return (
@@ -31,12 +35,13 @@ export default function DeleteConfirmation({ isOpen, assistant, onClose, onConfi
           </div>
           <h2 className="text-xl font-bold text-white">Delete Assistant</h2>
         </div>
-        
+
         <p className="text-gray-300 mb-6">
-          Are you sure you want to delete <span className="font-semibold text-white">{assistant.name}</span>? 
+          Are you sure you want to delete{" "}
+          <span className="font-semibold text-white">{assistant.name}</span>?
           This action cannot be undone.
         </p>
-        
+
         <div className="flex justify-end space-x-4">
           <button
             onClick={onClose}

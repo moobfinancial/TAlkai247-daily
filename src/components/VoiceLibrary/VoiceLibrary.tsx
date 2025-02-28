@@ -1,17 +1,28 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Plus } from 'lucide-react';
-import { VoiceCard } from './VoiceCard';
-import { VoiceFilters } from './VoiceFilters';
-import { AddVoiceCloneModal } from './AddVoiceCloneModal';
-import { VoiceDetailsModal } from './VoiceDetailsModal';
-import type { Voice, Provider } from './types';
-import { elevenLabsService } from '@/services/elevenlabs';
+import { Plus } from "lucide-react";
+import { VoiceCard } from "./VoiceCard";
+import { VoiceFilters } from "./VoiceFilters";
+import { AddVoiceCloneModal } from "./AddVoiceCloneModal";
+import { VoiceDetailsModal } from "./VoiceDetailsModal";
+import type { Voice, Provider } from "./types";
+import { elevenLabsService } from "@/services/elevenLabs";
 
 const allLanguages = [
-  "English", "Spanish (Spain)", "Spanish (Mexico)", "French (France)", "French (Canada)",
-  "German", "Italian", "Japanese", "Korean", "Portuguese (Brazil)", "Portuguese (Portugal)",
-  "Russian", "Chinese (Mandarin)", "Chinese (Cantonese)"
+  "English",
+  "Spanish (Spain)",
+  "Spanish (Mexico)",
+  "French (France)",
+  "French (Canada)",
+  "German",
+  "Italian",
+  "Japanese",
+  "Korean",
+  "Portuguese (Brazil)",
+  "Portuguese (Portugal)",
+  "Russian",
+  "Chinese (Mandarin)",
+  "Chinese (Cantonese)",
 ];
 
 const allProviders: Provider[] = [
@@ -38,13 +49,13 @@ export function VoiceLibrary() {
     const fetchElevenLabsVoices = async () => {
       try {
         setIsLoading(true);
-        console.log('Starting to fetch Eleven Labs voices...');
-        console.log('API Key available:', !!elevenLabsService.apiKey);
+        console.log("Starting to fetch Eleven Labs voices...");
+        console.log("API Key available:", !!elevenLabsService.apiKey);
         const elevenLabsVoices = await elevenLabsService.getAllVoices();
-        console.log('Received voices:', elevenLabsVoices);
-        
+        console.log("Received voices:", elevenLabsVoices);
+
         if (!elevenLabsVoices || elevenLabsVoices.length === 0) {
-          console.warn('No voices received from ElevenLabs API');
+          console.warn("No voices received from ElevenLabs API");
           return;
         }
 
@@ -56,13 +67,13 @@ export function VoiceLibrary() {
           language: "English",
           provider: "11Labs",
           traits: [],
-          eleven_labs_id: voice.voice_id
+          eleven_labs_id: voice.voice_id,
         }));
 
-        console.log('Formatted voices:', formattedVoices);
+        console.log("Formatted voices:", formattedVoices);
         setVoices(formattedVoices);
       } catch (error) {
-        console.error('Error fetching Eleven Labs voices:', error);
+        console.error("Error fetching Eleven Labs voices:", error);
       } finally {
         setIsLoading(false);
       }
@@ -71,12 +82,17 @@ export function VoiceLibrary() {
     fetchElevenLabsVoices();
   }, []);
 
-  const filteredVoices = voices.filter(voice => {
-    const matchesSearch = voice.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         voice.nationality.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesLanguage = selectedLanguage === "All Languages" || voice.language === selectedLanguage;
-    const matchesProvider = selectedProvider === "All Providers" || voice.provider === selectedProvider;
-    
+  const filteredVoices = voices.filter((voice) => {
+    const matchesSearch =
+      voice.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      voice.nationality.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesLanguage =
+      selectedLanguage === "All Languages" ||
+      voice.language === selectedLanguage;
+    const matchesProvider =
+      selectedProvider === "All Providers" ||
+      voice.provider === selectedProvider;
+
     return matchesSearch && matchesLanguage && matchesProvider;
   });
 

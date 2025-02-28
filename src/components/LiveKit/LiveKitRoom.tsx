@@ -1,15 +1,12 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from "react";
 import {
   LiveKitRoom as LiveKitRoomComponent,
   VideoConference,
-  GridLayout,
-  ParticipantTile,
-  useTracks,
   RoomAudioRenderer,
-} from '@livekit/components-react';
-import '@livekit/components-styles';
-import { Track } from 'livekit-client';
-import axios from 'axios';
+} from "@livekit/components-react";
+import "@livekit/components-styles";
+import { Track } from "livekit-client";
+import axios from "axios";
 
 interface LiveKitRoomProps {
   roomName: string;
@@ -20,19 +17,19 @@ interface LiveKitRoomProps {
 export const LiveKitRoom: React.FC<LiveKitRoomProps> = ({
   roomName,
   participantName,
-  onError
+  onError,
 }) => {
-  const [token, setToken] = useState<string>('');
+  const [token, setToken] = useState<string>("");
 
   const fetchToken = useCallback(async () => {
     try {
-      const response = await axios.post('/api/livekit/token', {
+      const response = await axios.post("/api/livekit/token", {
         roomName,
         participantName,
       });
       setToken(response.data.token);
     } catch (error) {
-      console.error('Error fetching token:', error);
+      console.error("Error fetching token:", error);
       if (onError) {
         onError(error as Error);
       }

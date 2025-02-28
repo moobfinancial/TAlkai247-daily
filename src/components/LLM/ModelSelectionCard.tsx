@@ -1,9 +1,14 @@
-import React from 'react';
 import { Card } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Label } from "@/components/ui/label";
-import { Model } from '@/lib/api/openrouter';
+import { Model } from "@/lib/api/openrouter";
 
 interface ModelSelectionCardProps {
   models: Model[];
@@ -24,16 +29,16 @@ export default function ModelSelectionCard({
   onModelChange,
   disabled = false,
   loading = false,
-  error = null
+  error = null,
 }: ModelSelectionCardProps) {
   const getProviderFromModelId = (modelId: string) => {
-    const [provider] = modelId.split('/');
+    const [provider] = modelId.split("/");
     return provider;
   };
 
   const getModelsByProvider = () => {
     const modelsByProvider: Record<string, Model[]> = {};
-    models.forEach(model => {
+    models.forEach((model) => {
       const provider = getProviderFromModelId(model.id);
       if (!modelsByProvider[provider]) {
         modelsByProvider[provider] = [];
@@ -57,7 +62,10 @@ export default function ModelSelectionCard({
         >
           <SelectTrigger className="bg-gray-700 text-white border-gray-600">
             <SelectValue placeholder="Select provider">
-              {selectedProvider ? selectedProvider.charAt(0).toUpperCase() + selectedProvider.slice(1) : 'Select provider'}
+              {selectedProvider
+                ? selectedProvider.charAt(0).toUpperCase() +
+                  selectedProvider.slice(1)
+                : "Select provider"}
             </SelectValue>
           </SelectTrigger>
           <SelectContent>
@@ -79,7 +87,10 @@ export default function ModelSelectionCard({
         >
           <SelectTrigger className="bg-gray-700 text-white border-gray-600">
             <SelectValue placeholder="Select model">
-              {selectedModel ? selectedProviderModels.find(m => m.id === selectedModel)?.name || selectedModel : 'Select model'}
+              {selectedModel
+                ? selectedProviderModels.find((m) => m.id === selectedModel)
+                    ?.name || selectedModel
+                : "Select model"}
             </SelectValue>
           </SelectTrigger>
           <SelectContent>
@@ -106,12 +117,8 @@ export default function ModelSelectionCard({
         </Select>
       </div>
 
-      {loading && (
-        <p className="text-sm text-gray-400">Loading models...</p>
-      )}
-      {error && (
-        <p className="text-sm text-red-400">{error}</p>
-      )}
+      {loading && <p className="text-sm text-gray-400">Loading models...</p>}
+      {error && <p className="text-sm text-red-400">{error}</p>}
     </Card>
   );
 }

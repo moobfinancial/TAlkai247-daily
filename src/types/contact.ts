@@ -1,11 +1,19 @@
-export type TransparencyLevel = 'Full Disclosure' | 'Partial Disclosure' | 'No Disclosure';
-export type ContactType = 'Personal' | 'Campaign';
-export type Subcategory = 'Stranger' | 'Business' | 'Family' | 'Friends' | 'Other';
+export type TransparencyLevel =
+  | "Full Disclosure"
+  | "Partial Disclosure"
+  | "No Disclosure";
+export type ContactType = "Personal" | "Campaign";
+export type Subcategory =
+  | "Stranger"
+  | "Business"
+  | "Family"
+  | "Friends"
+  | "Other";
 
 export interface Goal {
   id: string;
   title: string;
-  callType: 'Business' | 'Personal';
+  callType: "Business" | "Personal";
   template: string;
   aiPrompt: string;
   urls: string[];
@@ -20,7 +28,7 @@ export interface Contact {
   type: ContactType;
   goals?: Goal[];
   transparencyLevel: TransparencyLevel;
-  subcategory?: Subcategory;
+  subcategory: Subcategory;
   customSubcategory?: string;
   campaignName?: string;
   tags?: string[];
