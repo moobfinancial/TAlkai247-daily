@@ -1,11 +1,11 @@
-import { PrismaClient, ResourceType, TemplateType } from "@prisma/client";
-import bcrypt from "bcryptjs";
+import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
 async function main() {
   // Create admin user
-  const adminPassword = await bcrypt.hash("admin123", 10);
+  const adminPassword =
+    "$2a$10$89.tRyrGAAxSFxM/Ij.Fru3TZDHrnoJ83zQ2u9ODVnJEnk93kr1pW"; // await bcrypt.hash("admin123", 10);
   const admin = await prisma.user.upsert({
     where: { email: "admin@talkai247.com" },
     update: {},
@@ -24,7 +24,8 @@ async function main() {
   });
 
   // Create demo user
-  const demoPassword = await bcrypt.hash("demo123", 10);
+  const demoPassword =
+    "$2a$10$JtiYJMBC82xlRwsOeCmfnO0x7VqjjfJOrEPtnLylln5CAS97LDRsy"; //await bcrypt.hash("demo123", 10);
   const demoUser = await prisma.user.upsert({
     where: { email: "demo@talkai247.com" },
     update: {},
@@ -47,7 +48,7 @@ async function main() {
   const systemTemplates = [
     {
       name: "Professional Tone",
-      type: "BUSINESS" as TemplateType,
+      type: "BUSINESS",
       systemPrompt:
         "Maintain a professional and courteous tone throughout the conversation.",
       editablePrompt:
@@ -57,7 +58,7 @@ async function main() {
     },
     {
       name: "Customer Support",
-      type: "BUSINESS" as TemplateType,
+      type: "BUSINESS",
       systemPrompt:
         "Focus on understanding and resolving customer issues efficiently.",
       editablePrompt:
@@ -67,7 +68,7 @@ async function main() {
     },
     {
       name: "Sales Approach",
-      type: "BUSINESS" as TemplateType,
+      type: "BUSINESS",
       systemPrompt:
         "Help identify opportunities and present solutions effectively.",
       editablePrompt:
@@ -77,7 +78,7 @@ async function main() {
     },
     {
       name: "Empathetic Listener",
-      type: "PERSONAL" as TemplateType,
+      type: "PERSONAL",
       systemPrompt: "Focus on understanding and acknowledging emotions.",
       editablePrompt:
         "Remind me to show empathy and validate feelings during the conversation.",
@@ -99,7 +100,7 @@ async function main() {
   const resources = [
     {
       title: "Getting Started Guide",
-      type: "DOCUMENTATION" as ResourceType,
+      type: "DOCUMENTATION",
       url: "https://docs.talkai247.com/getting-started",
       description: "Learn how to set up and use Talkai247 effectively.",
       tags: ["guide", "setup", "basics"],
@@ -107,7 +108,7 @@ async function main() {
     },
     {
       title: "Best Practices for AI Calls",
-      type: "GUIDE" as ResourceType,
+      type: "GUIDE",
       url: "https://docs.talkai247.com/best-practices",
       description: "Tips and tricks for making the most of your AI calls.",
       tags: ["tips", "optimization", "quality"],
