@@ -267,18 +267,15 @@ export default function TemplateSelection({ onNext }: TemplateSelectionProps) {
                 ×
               </button>
             </div>
-
             <div className="space-y-4 mb-6">
               <div>
                 <h3 className="text-[#14b8a6] font-medium mb-2">System Prompt</h3>
                 <p className="text-gray-300">{previewTemplate.systemPrompt}</p>
               </div>
-
               <div>
                 <h3 className="text-[#14b8a6] font-medium mb-2">First Message</h3>
                 <p className="text-gray-300">{previewTemplate.firstMessage}</p>
               </div>
-
               <div>
                 <h3 className="text-[#14b8a6] font-medium mb-2">Tools</h3>
                 <ul className="list-disc list-inside text-gray-300">
@@ -290,7 +287,6 @@ export default function TemplateSelection({ onNext }: TemplateSelectionProps) {
                 </ul>
               </div>
             </div>
-
             <div className="flex justify-end space-x-4">
               <button
                 className="px-4 py-2 text-gray-400 hover:text-white"

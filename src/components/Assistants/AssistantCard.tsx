@@ -667,7 +667,6 @@ export default function AssistantCard({ assistant, onUpdate, onDelete }: Assista
                           setEditedAssistant(prev => {
                             const tools = prev.tools || [];
                             const hasType = tools.some(t => t.type === tool.type);
-
                             return {
                               ...prev,
                               tools: hasType
