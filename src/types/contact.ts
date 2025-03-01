@@ -1,11 +1,22 @@
-export type TransparencyLevel = 'none' | 'partial' | 'full';
-export type ContactType = 'personal' | 'business';
-export type Subcategory = 'Stranger' | 'Business' | 'Family' | 'Friends' | 'Other';
+export type TransparencyLevel =
+  | "Full Disclosure"
+  | "Partial Disclosure"
+  | "No Disclosure"
+  | "full"
+  | "partial"
+  | "none";
+export type ContactType = "Personal" | "personal" | "Campaign";
+export type Subcategory =
+  | "Stranger"
+  | "Business"
+  | "Family"
+  | "Friends"
+  | "Other";
 
 export interface Goal {
   id: string;
   title: string;
-  callType: 'Business' | 'Personal';
+  callType: "Business" | "Personal";
   template: string;
   aiPrompt: string;
   urls: string[];
@@ -14,30 +25,25 @@ export interface Goal {
 
 export interface Contact {
   id: string;
-  userId: string;
   name: string;
   email: string;
   phone: string;
   type: ContactType;
   goals?: Goal[];
   transparencyLevel: TransparencyLevel;
-  subcategory?: string;
+  subcategory?: Subcategory;
   customSubcategory?: string;
-  campaignId?: string;
-  tags: string[];
-  notes?: string;
-  createdAt: Date;
-  updatedAt: Date;
-  lastContactedAt?: Date;
+  campaignName?: string;
+  tags?: string[];
 }
 
 export interface TimelineEvent {
   id: string;
   contactId: string;
-  type: 'Call' | 'Email' | 'Meeting' | 'Note' | 'Task';
+  type: "Call" | "Email" | "Meeting" | "Note" | "Task";
   title: string;
   description: string;
   date: Date;
-  completed?: boolean;
+  completed: boolean;
   dueDate?: Date;
 }

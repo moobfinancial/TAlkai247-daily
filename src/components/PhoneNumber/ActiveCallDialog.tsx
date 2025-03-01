@@ -1,12 +1,17 @@
-import { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useState } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Mic, MicOff, Send, PhoneOff } from 'lucide-react';
+import { Mic, MicOff, Send, PhoneOff } from "lucide-react";
 
 interface CallTranscriptEntry {
-  role: 'ai' | 'user' | 'AI' | 'User';
+  role: "ai" | "user" | "AI" | "User";
   message?: string;
   content?: string;
   timestamp?: string;
@@ -16,6 +21,7 @@ interface ActiveCallDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   phoneNumber?: string;
+  userMessage?: string;
   transcript: CallTranscriptEntry[];
   isListening?: boolean;
   isMuted?: boolean;
@@ -36,13 +42,13 @@ export function ActiveCallDialog({
   onEndCall,
   onSendMessage,
 }: ActiveCallDialogProps) {
-  const [message, setMessage] = useState('');
+  const [message, setMessage] = useState("");
   const [isListening, setIsListening] = useState(false);
 
   const handleSendMessage = () => {
     if (message.trim()) {
       onSendMessage();
-      setMessage('');
+      setMessage("");
     }
   };
 
@@ -63,13 +69,19 @@ export function ActiveCallDialog({
           <ScrollArea className="h-[300px] bg-gray-900 rounded-md p-4">
             <div className="space-y-4">
               {transcript.map((entry, index) => (
-                <div 
-                  key={index} 
-                  className={`flex ${entry.role.toLowerCase() === 'user' ? 'justify-end' : 'justify-start'}`}
+                <div
+                  key={index}
+                  className={`flex ${
+                    entry.role.toLowerCase() === "user"
+                      ? "justify-end"
+                      : "justify-start"
+                  }`}
                 >
-                  <div 
+                  <div
                     className={`rounded-lg px-4 py-2 max-w-[80%] ${
-                      entry.role.toLowerCase() === 'user' ? 'bg-teal-600' : 'bg-gray-700'
+                      entry.role.toLowerCase() === "user"
+                        ? "bg-teal-600"
+                        : "bg-gray-700"
                     }`}
                   >
                     {entry.message || entry.content}
@@ -86,7 +98,7 @@ export function ActiveCallDialog({
               placeholder="Type your message..."
               className="flex-1 bg-gray-700 border-gray-600 text-white"
               onKeyPress={(e) => {
-                if (e.key === 'Enter') {
+                if (e.key === "Enter") {
                   handleSendMessage();
                 }
               }}
@@ -96,10 +108,16 @@ export function ActiveCallDialog({
               variant="ghost"
               onClick={toggleVoiceInput}
               className={`${
-                isListening ? 'text-red-400 hover:text-red-500' : 'text-gray-400 hover:text-white'
+                isListening
+                  ? "text-red-400 hover:text-red-500"
+                  : "text-gray-400 hover:text-white"
               }`}
             >
-              {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+              {isListening ? (
+                <MicOff className="h-4 w-4" />
+              ) : (
+                <Mic className="h-4 w-4" />
+              )}
             </Button>
             <Button
               size="icon"

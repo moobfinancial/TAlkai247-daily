@@ -1,8 +1,13 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Play } from "lucide-react";
-import type { Voice, Provider } from './types';
+import type { Voice, Provider } from "./types";
 
 interface VoiceDetailsModalProps {
   isOpen: boolean;
@@ -11,9 +16,14 @@ interface VoiceDetailsModalProps {
   providers: Provider[];
 }
 
-export function VoiceDetailsModal({ voice, isOpen, onClose, providers }: VoiceDetailsModalProps) {
+export function VoiceDetailsModal({
+  voice,
+  isOpen,
+  onClose,
+  providers,
+}: VoiceDetailsModalProps) {
   if (!voice) return null;
-
+  console.log("voice", voice);
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="bg-gray-800 text-white border-gray-700">
@@ -34,21 +44,31 @@ export function VoiceDetailsModal({ voice, isOpen, onClose, providers }: VoiceDe
             <p className="text-gray-300">Language: {voice.language}</p>
             <p className="text-gray-300">
               Provider: {voice.provider}
-              <Badge 
-                variant={providers.find(p => p.name === voice.provider)?.status === "Included" ? "secondary" : "destructive"}
+              <Badge
+                variant={
+                  providers.find((p) => p.name === voice.provider)?.status ===
+                  "Included"
+                    ? "secondary"
+                    : "destructive"
+                }
                 className="ml-2"
               >
-                {providers.find(p => p.name === voice.provider)?.status || "Custom"}
+                {providers.find((p) => p.name === voice.provider)?.status ||
+                  "Custom"}
               </Badge>
             </p>
             {(voice.eleven_labs_id || voice.deepgram_id || voice.playht_id) && (
               <p className="text-gray-300">
-                ID: {voice.eleven_labs_id || voice.deepgram_id || voice.playht_id}
+                ID:{" "}
+                {voice.eleven_labs_id || voice.deepgram_id || voice.playht_id}
               </p>
             )}
             <div className="flex flex-wrap gap-2 mt-2">
               {voice.traits.map((trait, index) => (
-                <span key={index} className="px-2 py-0.5 bg-gray-700 text-gray-200 rounded-full text-xs">
+                <span
+                  key={index}
+                  className="px-2 py-0.5 bg-gray-700 text-gray-200 rounded-full text-xs"
+                >
                   {trait}
                 </span>
               ))}

@@ -1,16 +1,22 @@
-import { Search, Filter } from 'lucide-react';
+import { Search, Filter } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { TransparencyLevel } from '@/types/contact';
+import { TransparencyLevel } from "@/types/contact";
 
 interface ContactFiltersProps {
   searchTerm: string;
   onSearchChange: (value: string) => void;
   filterType: string;
   onFilterTypeChange: (value: string) => void;
-  filterTransparency: TransparencyLevel | 'all';
-  onFilterTransparencyChange: (value: TransparencyLevel | 'all') => void;
+  filterTransparency: TransparencyLevel | "all";
+  onFilterTransparencyChange: (value: TransparencyLevel | "all") => void;
   filterSubcategory: string;
   onFilterSubcategoryChange: (value: string) => void;
   filterCampaign: string;
@@ -33,7 +39,7 @@ export function ContactFilters({
   onFilterCampaignChange,
   campaigns,
   showPersonalFilters,
-  onAdvancedFilters
+  onAdvancedFilters,
 }: ContactFiltersProps) {
   return (
     <div className="space-y-4">
@@ -48,7 +54,7 @@ export function ContactFilters({
             className="pl-10 pr-4 py-2 w-full bg-gray-700 text-white border-gray-600"
           />
         </div>
-        
+
         <Button
           variant="outline"
           onClick={onAdvancedFilters}
@@ -73,19 +79,27 @@ export function ContactFilters({
 
         {showPersonalFilters && (
           <>
-            <Select value={filterTransparency} onValueChange={onFilterTransparencyChange}>
+            <Select
+              value={filterTransparency}
+              onValueChange={onFilterTransparencyChange}
+            >
               <SelectTrigger className="w-[180px] bg-gray-800 text-white border-gray-700">
                 <SelectValue placeholder="Transparency Level" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Levels</SelectItem>
                 <SelectItem value="Full Disclosure">Full Disclosure</SelectItem>
-                <SelectItem value="Partial Disclosure">Partial Disclosure</SelectItem>
+                <SelectItem value="Partial Disclosure">
+                  Partial Disclosure
+                </SelectItem>
                 <SelectItem value="No Disclosure">No Disclosure</SelectItem>
               </SelectContent>
             </Select>
 
-            <Select value={filterSubcategory} onValueChange={onFilterSubcategoryChange}>
+            <Select
+              value={filterSubcategory}
+              onValueChange={onFilterSubcategoryChange}
+            >
               <SelectTrigger className="w-[180px] bg-gray-800 text-white border-gray-700">
                 <SelectValue placeholder="Subcategory" />
               </SelectTrigger>
@@ -101,15 +115,17 @@ export function ContactFilters({
           </>
         )}
 
-        {filterType === 'Campaign' && (
+        {filterType === "Campaign" && (
           <Select value={filterCampaign} onValueChange={onFilterCampaignChange}>
             <SelectTrigger className="w-[180px] bg-gray-800 text-white border-gray-700">
               <SelectValue placeholder="Filter by Campaign" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Campaigns</SelectItem>
-              {campaigns.map(campaign => (
-                <SelectItem key={campaign} value={campaign}>{campaign}</SelectItem>
+              {campaigns.map((campaign) => (
+                <SelectItem key={campaign} value={campaign}>
+                  {campaign}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>

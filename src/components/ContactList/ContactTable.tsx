@@ -1,16 +1,42 @@
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Eye, Edit, Trash2 } from 'lucide-react';
-import { Contact } from '@/types/contact';
+import {
+  TooltipProvider,
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+} from "@/components/ui/tooltip";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Eye, Edit, Trash2 } from "lucide-react";
+import { Contact } from "@/types/contact";
 
 type ContactTableProps = {
   contacts: Contact[];
   selectedContacts: string[];
+  onSelectContact: (id: string) => void;
   onEdit: (contact: Contact) => void;
   onDelete: (contactId: string) => void;
   onSelect: (id: string) => void;
+  onSelectAll: (id: string) => void;
+  onQuickView: (contact: Contact) => void;
+  onManageGoals: (contact: Contact) => void;
 };
 
 export const ContactTable = ({
@@ -100,11 +126,14 @@ export const ContactTable = ({
                         <AlertDialogHeader>
                           <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                           <AlertDialogDescription className="text-gray-400">
-                            This action cannot be undone. This will permanently delete the contact.
+                            This action cannot be undone. This will permanently
+                            delete the contact.
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
-                          <AlertDialogCancel className="bg-gray-700 text-white hover:bg-gray-600">Cancel</AlertDialogCancel>
+                          <AlertDialogCancel className="bg-gray-700 text-white hover:bg-gray-600">
+                            Cancel
+                          </AlertDialogCancel>
                           <AlertDialogAction
                             onClick={() => onDelete(contact.id)}
                             className="bg-red-600 text-white hover:bg-red-700"
@@ -125,6 +154,6 @@ export const ContactTable = ({
   );
 };
 
-ContactTable.displayName = 'ContactTable';
+ContactTable.displayName = "ContactTable";
 
 export default ContactTable;
