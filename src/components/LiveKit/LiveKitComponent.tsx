@@ -59,6 +59,15 @@ const LiveKitComponent = ({ roomName, userName }: LiveKitComponentProps) => {
           `Track published: ${publication.kind} by ${participant.identity}`
         );
       });
+      room.on("trackSubscribed", (track) => {
+        if (track.kind === "video") {
+          const videoElement = document.createElement("video");
+          videoElement.srcObject = new MediaStream([track.mediaStreamTrack]);
+          console.log("videoElement", videoElement);
+          document.body.appendChild(videoElement);
+          videoElement.play();
+        }
+      });
 
       room
         .connect(LIVEKIT_URL, token)
