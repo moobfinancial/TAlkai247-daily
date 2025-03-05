@@ -38,6 +38,7 @@ import { ReactNode } from "react";
 // import { elevenlabsService } from '@/services/elevenlabs';
 import { elevenlabsService } from "@/services/elevenlabs";
 import { elevenLabsService } from "@/services/eleven-Labs";
+import LiveKitComponent from "../LiveKit/LiveKitComponent";
 interface AssistantCardProps {
   assistant: Assistant;
   onUpdate?: (assistant: Assistant) => void;
@@ -1036,9 +1037,17 @@ export default function AssistantCard({
                 <div className="flex flex-col items-center justify-center h-[300px] text-gray-400">
                   <Mic className="h-12 w-12 mb-4 opacity-50" />
                   <p className="text-center">
-                    {isInCall
-                      ? "Listening... Start speaking to your assistant"
-                      : "Click the microphone button to start a conversation"}
+                    {isInCall ? (
+                      <div>
+                        <LiveKitComponent
+                          roomName={editedAssistant.id}
+                          userName="user1"
+                        />
+                        <p>Listening... Start speaking to your assistant</p>
+                      </div>
+                    ) : (
+                      "Click the microphone button to start a conversation"
+                    )}
                   </p>
                 </div>
               </div>

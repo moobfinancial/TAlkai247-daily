@@ -7,6 +7,7 @@ import { fileURLToPath } from "url";
 import { dirname } from "path";
 import assistantRoutes from "./routes/assistants.js";
 import templateRoutes from "./routes/templates.js";
+import { AccessToken } from "livekit-server-sdk";
 
 // Get the directory path
 const __filename = fileURLToPath(import.meta.url);
@@ -19,32 +20,33 @@ const app = express();
 const port = process.env.PORT || 3000;
 
 // Configure CORS to be more permissive during development
-const corsOptions = {
-  origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
+// const corsOptions = {
+//   origin: function (origin, callback) {
+//     // Allow requests with no origin (like mobile apps or curl requests)
+//     if (!origin) return callback(null, true);
 
-    // Allow any localhost origin
-    if (
-      (origin.match(/^http:\/\/localhost(:\d+)?$/),
-      origin.match(/^https?:\/\/(app\.)?talkai\.site$/))
-    ) {
-      callback(null, true);
-    } else {
-      callback(new Error("Not allowed by CORS"));
-    }
-  },
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: [
-    "Content-Type",
-    "Authorization",
-    "X-API-Key",
-    "Cartesia-Version",
-  ],
-};
+//     // Allow any localhost origin
+//     if (
+//       (origin.match(/^http:\/\/localhost(:\d+)?$/),
+//       origin.match(/^https?:\/\/(app\.)?talkai\.site$/))
+//     ) {
+//       callback(null, true);
+//     } else {
+//       callback(new Error("Not allowed by CORS"));
+//     }
+//   },
+//   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+//   allowedHeaders: [
+//     "Content-Type",
+//     "Authorization",
+//     "X-API-Key",
+//     "Cartesia-Version",
+//   ],
+// };
 
-app.use(cors(corsOptions));
-
+// app.use(cors(corsOptions));
+app.use(cors());
+app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
 // Check if we have the Deepgram API key
@@ -76,7 +78,7 @@ app.get("/api/openrouter/models", async (req, res) => {
     const response = await fetch("https://openrouter.ai/api/v1/models", {
       headers: {
         Authorization: `Bearer ${openrouterApiKey}`,
-        "HTTP-Referer": "http://localhost:3000",
+        "HTTP-Referer": "http://localhost:3030",
         "X-Title": "TAlkai247",
       },
     });
@@ -98,6 +100,24 @@ app.get("/api/openrouter/models", async (req, res) => {
   }
 });
 
+app.post("/api/livekit/get-token", async (req, res) => {
+  const { roomName, userName } = req.body;
+
+  if (!roomName || !userName) {
+    return res.status(400).json({ error: "roomName and userName required" });
+  }
+
+  const at = new AccessToken(
+    process.env.LIVEKIT_API_KEY,
+    process.env.LIVEKIT_API_SECRET,
+    {
+      identity: userName,
+    }
+  );
+  at.addGrant({ roomJoin: true, room: roomName });
+  const token = await at.toJwt();
+  res.json({ token });
+});
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error("Error:", err);
