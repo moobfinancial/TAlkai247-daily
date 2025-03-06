@@ -1,30 +1,31 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Slider } from "@/components/ui/slider";
-import { Play, Volume2, PauseCircle } from 'lucide-react';
+import { Play, PauseCircle } from 'lucide-react';
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/use-toast";
 import { cartesiaApi } from '@/services/cartesia';
-import { elevenLabsService } from '@/services/elevenlabs';
+import { elevenlabsService } from '@/services/elevenlabs';
 import { playhtApi } from '@/services/playht';
 import { deepgramApi } from '@/services/deepgram';
-import { Voice } from '@/components/VoiceLibrary/types';
+import { Voice, PlayHTVoice, DeepgramVoice, CartesiaVoice } from '@/components/VoiceLibrary/types';
+
+// Add webkitAudioContext to Window interface
+declare global {
+  interface Window {
+    webkitAudioContext: typeof AudioContext;
+  }
+}
 
 interface VoiceSettings {
   speed: number;
   pitch: number;
   stability: number;
   volume: number;
-}
-
-interface VoiceConfig {
-  provider: string;
-  voiceId: string;
-  settings: VoiceSettings;
 }
 
 interface VoiceSelectionProps {
@@ -51,18 +52,30 @@ export default function VoiceSelection({ formData, onNext, onBack }: VoiceSelect
   useEffect(() => {
     const fetchVoices = async () => {
       try {
-        const [cartesiaVoices, elevenLabsVoices, playhtVoices, deepgramVoices] = await Promise.all([
+        const [cartesiaVoices, elevenlabsVoices, playhtVoices, deepgramVoices] = await Promise.all([
           cartesiaApi.getVoices(),
-          elevenLabsService.getVoices(),
+          elevenlabsService.getVoices(),
           playhtApi.getVoices(),
           deepgramApi.getVoices()
         ]);
 
         setVoicesByProvider({
-          Cartesia: cartesiaVoices.slice(0, 10),
-          ElevenLabs: elevenLabsVoices.slice(0, 10),
-          PlayHT: playhtVoices.slice(0, 10),
-          Deepgram: deepgramVoices.slice(0, 10)
+          Cartesia: (cartesiaVoices as CartesiaVoice[]).map(voice => ({
+            ...voice,
+            provider: 'cartesia',
+            traits: []
+          } as Voice)),
+          ElevenLabs: (elevenlabsVoices as Voice[]),
+          PlayHT: (playhtVoices as PlayHTVoice[]).map(voice => ({
+            ...voice,
+            provider: 'playht',
+            traits: Array.isArray((voice as PlayHTVoice).traits) ? (voice as PlayHTVoice).traits : []
+          } as Voice)),
+          Deepgram: (deepgramVoices as DeepgramVoice[]).map(voice => ({
+            ...voice,
+            provider: 'deepgram',
+            traits: []
+          } as Voice))
         });
       } catch (error) {
         console.error('Error fetching voices:', error);
@@ -89,7 +102,7 @@ export default function VoiceSelection({ formData, onNext, onBack }: VoiceSelect
           audioBuffer = await cartesiaApi.previewVoice(selectedVoice.id, selectedVoice.preview_url);
           break;
         case 'elevenlabs':
-          audioBuffer = await elevenLabsService.previewVoice(selectedVoice.id, selectedVoice.preview_url);
+          audioBuffer = await elevenlabsService.previewVoice(selectedVoice.id, selectedVoice.preview_url);
           break;
         case 'playht':
           audioBuffer = await playhtApi.previewVoice(selectedVoice.id);
@@ -157,18 +170,48 @@ export default function VoiceSelection({ formData, onNext, onBack }: VoiceSelect
       
       // Fetch voice details based on provider
       switch (customVoiceProvider.toLowerCase()) {
-        case 'cartesia':
-          voice = await cartesiaApi.getVoice(customVoiceId);
+        case 'cartesia': {
+          // Fallback to find the voice in the existing voices
+          const voices = await cartesiaApi.getVoices();
+          voice = voices.find(v => v.id === customVoiceId) || null;
+          if (voice) {
+            voice = {
+              ...voice,
+              provider: 'cartesia',
+              traits: []
+            } as Voice;
+          }
           break;
+        }
         case 'elevenlabs':
-          voice = await elevenLabsService.getVoice(customVoiceId);
+          voice = await elevenlabsService.getVoices().then(voices => 
+            voices.find(v => v.id === customVoiceId) || null
+          );
           break;
-        case 'playht':
-          voice = await playhtApi.getVoice(customVoiceId);
+        case 'playht': {
+          const voices = await playhtApi.getVoices();
+          voice = voices.find(v => v.id === customVoiceId) || null;
+          if (voice) {
+            voice = {
+              ...voice,
+              provider: 'playht',
+              traits: Array.isArray((voice as PlayHTVoice).traits) ? (voice as PlayHTVoice).traits : []
+            } as Voice;
+          }
           break;
-        case 'deepgram':
-          voice = await deepgramApi.getVoice(customVoiceId);
+        }
+        case 'deepgram': {
+          const voices = await deepgramApi.getVoices();
+          voice = voices.find(v => v.id === customVoiceId) || null;
+          if (voice) {
+            voice = {
+              ...voice,
+              provider: 'deepgram',
+              traits: []
+            } as Voice;
+          }
           break;
+        }
         default:
           throw new Error('Unsupported provider');
       }
@@ -195,7 +238,7 @@ export default function VoiceSelection({ formData, onNext, onBack }: VoiceSelect
       
       // Normalize provider name - handle both cases
       const normalizedProvider = provider.toLowerCase() === 'playht' || provider === 'Playht' ? 'PlayHT' :
-                               provider.toLowerCase() === 'elevenlabs' || provider === '11Labs' ? 'ElevenLabs' :
+                               provider.toLowerCase() === 'elevenlabs' || provider === 'elevenlabs' ? 'ElevenLabs' :
                                provider.toLowerCase() === 'deepgram' ? 'Deepgram' :
                                provider.toLowerCase() === 'cartesia' ? 'Cartesia' : provider;
 

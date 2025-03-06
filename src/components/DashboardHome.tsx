@@ -1,4 +1,3 @@
-import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import StatCard from '@/components/StatCard';
 import { Card } from '@/components/ui/card';

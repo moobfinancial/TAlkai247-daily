@@ -7,7 +7,10 @@ export const campaignsApi = {
     pageSize?: number;
     search?: string;
     status?: string;
-  }) => apiClient.get<PaginatedResponse<Campaign>>('/campaigns', { params }),
+  }) => {
+    const query = new URLSearchParams(params as any).toString();
+    return apiClient.get<PaginatedResponse<Campaign>>(`/campaigns?${query}`);
+  },
 
   getCampaign: (id: string) => 
     apiClient.get<Campaign>(`/campaigns/${id}`),

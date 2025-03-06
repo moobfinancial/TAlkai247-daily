@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,18 +6,26 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Mic, MicOff, Send, PhoneOff } from 'lucide-react';
 
 interface CallTranscriptEntry {
-  role: 'ai' | 'user';
-  message: string;
+  role: 'ai' | 'user' | 'AI' | 'User';
+  message?: string;
+  content?: string;
+  timestamp?: string;
 }
 
 interface ActiveCallDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  phoneNumber: string;
+  phoneNumber?: string;
   transcript: CallTranscriptEntry[];
-  onJoinCall: () => void;
+  isListening?: boolean;
+  isMuted?: boolean;
+  volume?: number;
+  onJoinCall?: () => void;
   onEndCall: () => void;
-  onSendMessage: (message: string) => void;
+  onSendMessage: () => void;
+  onUserMessageChange?: (message: string) => void;
+  onToggleMute?: () => void;
+  onVolumeChange?: (value: number) => void;
 }
 
 export function ActiveCallDialog({
@@ -25,7 +33,6 @@ export function ActiveCallDialog({
   onOpenChange,
   phoneNumber,
   transcript,
-  onJoinCall,
   onEndCall,
   onSendMessage,
 }: ActiveCallDialogProps) {
@@ -34,7 +41,7 @@ export function ActiveCallDialog({
 
   const handleSendMessage = () => {
     if (message.trim()) {
-      onSendMessage(message);
+      onSendMessage();
       setMessage('');
     }
   };
@@ -45,40 +52,32 @@ export function ActiveCallDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-gray-800 border-gray-700 sm:max-w-[500px]">
+      <DialogContent className="bg-gray-800 text-white border-gray-700 max-w-2xl">
         <DialogHeader>
-          <DialogTitle className="text-lg font-semibold text-white">
-            Ongoing Call
+          <DialogTitle className="text-teal-400 text-xl">
+            Active Call {phoneNumber && `with ${phoneNumber}`}
           </DialogTitle>
         </DialogHeader>
-        
-        <div className="flex items-center justify-between mb-4">
-          <p className="text-sm text-gray-300">Call with: {phoneNumber}</p>
-          <Button 
-            onClick={onJoinCall}
-            className="bg-teal-600 hover:bg-teal-700"
-          >
-            <Mic className="h-4 w-4 mr-2" />
-            Join Call
-          </Button>
-        </div>
 
         <div className="space-y-4">
-          <div>
-            <h3 className="text-sm font-medium text-white mb-2">Call Transcript</h3>
-            <ScrollArea className="h-[300px] rounded-md border border-gray-700 bg-gray-900 p-4">
-              <div className="space-y-2">
-                {transcript.map((entry, index) => (
-                  <div key={index} className="text-sm">
-                    <span className={entry.role === 'ai' ? 'text-gray-300' : 'text-blue-400'}>
-                      {entry.role === 'ai' ? 'AI: ' : 'User: '}
-                    </span>
-                    <span className="text-gray-300">{entry.message}</span>
+          <ScrollArea className="h-[300px] bg-gray-900 rounded-md p-4">
+            <div className="space-y-4">
+              {transcript.map((entry, index) => (
+                <div 
+                  key={index} 
+                  className={`flex ${entry.role.toLowerCase() === 'user' ? 'justify-end' : 'justify-start'}`}
+                >
+                  <div 
+                    className={`rounded-lg px-4 py-2 max-w-[80%] ${
+                      entry.role.toLowerCase() === 'user' ? 'bg-teal-600' : 'bg-gray-700'
+                    }`}
+                  >
+                    {entry.message || entry.content}
                   </div>
-                ))}
-              </div>
-            </ScrollArea>
-          </div>
+                </div>
+              ))}
+            </div>
+          </ScrollArea>
 
           <div className="flex items-center space-x-2">
             <Input

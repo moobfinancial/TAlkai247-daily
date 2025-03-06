@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
 import { apiClient } from '../client';
-import { PaginatedResponse } from '@/types/schema';
 
 interface InfiniteQueryOptions<T> {
   endpoint: string;
@@ -19,6 +18,26 @@ interface InfiniteQueryResult<T> {
   loadNextPage: () => Promise<void>;
   refetch: () => Promise<void>;
 }
+
+interface ApiResponse<T> {
+  data: {
+    items: T[];
+    totalPages: number;
+  };
+}
+
+const isApiResponse = <T>(result: any): result is ApiResponse<T> => {
+  return (
+    result &&
+    typeof result === 'object' &&
+    'data' in result &&
+    typeof result.data === 'object' &&
+    'items' in result.data &&
+    Array.isArray(result.data.items) &&
+    'totalPages' in result.data &&
+    typeof result.data.totalPages === 'number'
+  );
+};
 
 export function useInfiniteQuery<T>({
   endpoint,
@@ -45,9 +64,13 @@ export function useInfiniteQuery<T>({
         pageSize: pageSize.toString(),
       }).toString();
 
-      const result = await apiClient.get<PaginatedResponse<T>>(`${endpoint}?${queryParams}`);
+      const result = await apiClient.get<ApiResponse<T>>(`${endpoint}?${queryParams}`);
 
-      return result;
+      if (result?.data && isApiResponse<T>(result)) {
+        return result;
+      } else {
+        throw new Error('Unexpected API response structure');
+      }
     } catch (err) {
       const error = err instanceof Error ? err : new Error('An error occurred');
       setError(error);
@@ -64,11 +87,16 @@ export function useInfiniteQuery<T>({
     try {
       const result = await fetchPage(currentPage + 1);
       
-      setData(prev => [...prev, ...result.items]);
-      setCurrentPage(prev => prev + 1);
-      setHasNextPage(currentPage + 1 < result.totalPages);
-      
-      onSuccess?.(result.items);
+      if (result) {
+        const typedItems = result.data.items as T[];
+        setData(prev => [...prev, ...typedItems]);
+        setCurrentPage(prev => prev + 1);
+        setHasNextPage(currentPage + 1 < result.data.totalPages);
+        
+        onSuccess?.(typedItems);
+      } else {
+        throw new Error("Unexpected API response structure");
+      }
     } catch (error) {
       // Error already handled in fetchPage
     }
@@ -82,10 +110,15 @@ export function useInfiniteQuery<T>({
     try {
       const result = await fetchPage(1);
       
-      setData(result.items);
-      setHasNextPage(1 < result.totalPages);
-      
-      onSuccess?.(result.items);
+      if (result) {
+        const typedItems = result.data.items as T[];
+        setData(typedItems);
+        setHasNextPage(1 < result.data.totalPages);
+        
+        onSuccess?.(typedItems);
+      } else {
+        throw new Error("Unexpected API response structure");
+      }
     } catch (error) {
       // Error already handled in fetchPage
     }

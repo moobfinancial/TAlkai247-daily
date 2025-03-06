@@ -1,8 +1,29 @@
 import { Router } from 'express';
-import { prisma } from '@/lib/prisma';
-import { validateWhisperTemplate } from '@/lib/validation';
-import type { WhisperTemplate } from '@/types/schema';
-import type { ApiResponse, PaginatedResponse } from '@/types/schema';
+import { prisma } from '../../lib/prisma';
+import { validateWhisperTemplate } from '../../lib/validation';
+import type { WhisperTemplate } from '../../types/schema';
+import type { ApiResponse, PaginatedResponse } from '../../types/schema';
+import { Prisma, TemplateType } from '@prisma/client';
+import { z } from 'zod';
+
+// Define the ValidationResult type to match what's in validation/index.ts
+type ValidationResult<T> = {
+  success: boolean;
+  data?: T;
+  errors?: z.ZodError;
+};
+
+// Extend Express Request interface to include user property
+declare global {
+  namespace Express {
+    interface Request {
+      user?: {
+        id: string;
+        [key: string]: any;
+      };
+    }
+  }
+}
 
 const router = Router();
 
@@ -12,10 +33,10 @@ router.get('/', async (req, res) => {
     const { page = 1, pageSize = 10, search, type, includeSystem = true } = req.query;
     const skip = (Number(page) - 1) * Number(pageSize);
 
-    const where = {
+    const where: Prisma.WhisperTemplateWhereInput = {
       OR: [
         {
-          userId: req.user.id,
+          userId: req.user?.id,
         },
         {
           isSystem: true,
@@ -23,7 +44,7 @@ router.get('/', async (req, res) => {
           ...(includeSystem === 'false' && { id: 'none' }),
         },
       ],
-      ...(type && { type: String(type) }),
+      ...(type && { type: type as TemplateType }),
       ...(search && {
         OR: [
           { name: { contains: String(search), mode: 'insensitive' } },
@@ -39,10 +60,7 @@ router.get('/', async (req, res) => {
         where,
         skip,
         take: Number(pageSize),
-        orderBy: [
-          { isSystem: 'desc' },
-          { createdAt: 'desc' },
-        ],
+        orderBy: { createdAt: 'desc' },
       }),
       prisma.whisperTemplate.count({ where }),
     ]);
@@ -50,7 +68,7 @@ router.get('/', async (req, res) => {
     const response: ApiResponse<PaginatedResponse<WhisperTemplate>> = {
       success: true,
       data: {
-        items: templates,
+        items: templates as unknown as WhisperTemplate[],
         total,
         page: Number(page),
         pageSize: Number(pageSize),
@@ -74,11 +92,13 @@ router.get('/', async (req, res) => {
 // Get whisper template by ID
 router.get('/:id', async (req, res) => {
   try {
+    const { id } = req.params;
+
     const template = await prisma.whisperTemplate.findFirst({
       where: {
-        id: req.params.id,
+        id,
         OR: [
-          { userId: req.user.id },
+          { userId: req.user?.id },
           { isSystem: true },
         ],
       },
@@ -113,7 +133,18 @@ router.get('/:id', async (req, res) => {
 // Create new whisper template
 router.post('/', async (req, res) => {
   try {
-    const validation = validateWhisperTemplate(req.body);
+    if (!req.user?.id) {
+      return res.status(401).json({
+        success: false,
+        error: {
+          code: 'UNAUTHORIZED',
+          message: 'User not authenticated',
+        },
+      });
+    }
+
+    const validation = validateWhisperTemplate(req.body) as ValidationResult<any>;
+    
     if (!validation.success) {
       return res.status(400).json({
         success: false,
@@ -129,7 +160,6 @@ router.post('/', async (req, res) => {
       data: {
         ...req.body,
         userId: req.user.id,
-        isSystem: false,
       },
     });
 
@@ -152,7 +182,38 @@ router.post('/', async (req, res) => {
 // Update whisper template
 router.put('/:id', async (req, res) => {
   try {
-    const validation = validateWhisperTemplate(req.body);
+    if (!req.user?.id) {
+      return res.status(401).json({
+        success: false,
+        error: {
+          code: 'UNAUTHORIZED',
+          message: 'User not authenticated',
+        },
+      });
+    }
+
+    const { id } = req.params;
+
+    // Check if template exists and belongs to user
+    const existingTemplate = await prisma.whisperTemplate.findFirst({
+      where: {
+        id,
+        userId: req.user.id,
+      },
+    });
+
+    if (!existingTemplate) {
+      return res.status(404).json({
+        success: false,
+        error: {
+          code: 'NOT_FOUND',
+          message: 'Whisper template not found or you do not have permission to update it',
+        },
+      });
+    }
+
+    const validation = validateWhisperTemplate(req.body) as ValidationResult<any>;
+    
     if (!validation.success) {
       return res.status(400).json({
         success: false,
@@ -164,33 +225,14 @@ router.put('/:id', async (req, res) => {
       });
     }
 
-    const template = await prisma.whisperTemplate.findFirst({
-      where: {
-        id: req.params.id,
-        userId: req.user.id,
-      },
-    });
-
-    if (!template) {
-      return res.status(404).json({
-        success: false,
-        error: {
-          code: 'NOT_FOUND',
-          message: 'Whisper template not found or cannot be modified',
-        },
-      });
-    }
-
-    const updatedTemplate = await prisma.whisperTemplate.update({
-      where: {
-        id: req.params.id,
-      },
+    const template = await prisma.whisperTemplate.update({
+      where: { id },
       data: req.body,
     });
 
     res.json({
       success: true,
-      data: updatedTemplate,
+      data: template,
     });
   } catch (error) {
     res.status(500).json({
@@ -207,28 +249,38 @@ router.put('/:id', async (req, res) => {
 // Delete whisper template
 router.delete('/:id', async (req, res) => {
   try {
-    const template = await prisma.whisperTemplate.findFirst({
+    if (!req.user?.id) {
+      return res.status(401).json({
+        success: false,
+        error: {
+          code: 'UNAUTHORIZED',
+          message: 'User not authenticated',
+        },
+      });
+    }
+
+    const { id } = req.params;
+
+    // Check if template exists and belongs to user
+    const existingTemplate = await prisma.whisperTemplate.findFirst({
       where: {
-        id: req.params.id,
+        id,
         userId: req.user.id,
-        isSystem: false,
       },
     });
 
-    if (!template) {
+    if (!existingTemplate) {
       return res.status(404).json({
         success: false,
         error: {
           code: 'NOT_FOUND',
-          message: 'Whisper template not found or cannot be deleted',
+          message: 'Whisper template not found or you do not have permission to delete it',
         },
       });
     }
 
     await prisma.whisperTemplate.delete({
-      where: {
-        id: req.params.id,
-      },
+      where: { id },
     });
 
     res.json({

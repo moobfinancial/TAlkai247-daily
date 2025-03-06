@@ -1,18 +1,30 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Eye, Edit, Trash2, Download, Upload, Plus } from 'lucide-react';
+import { Eye, Edit, Trash2, Download, Upload } from 'lucide-react';
+
+interface Campaign {
+  id: string;
+  name: string;
+  startDate: string;
+  startTime: string;
+  phoneNumber: string;
+  assistant: string;
+  description: string;
+  totalCalls: number;
+  successfulCalls: number;
+  failedCalls: number;
+}
 
 export default function Campaigns() {
-  const [campaigns, setCampaigns] = useState([
+  const [campaigns, setCampaigns] = useState<Campaign[]>([
     {
       id: '1',
       name: 'test',
@@ -27,41 +39,56 @@ export default function Campaigns() {
     }
   ]);
   
-  const [selectedCampaign, setSelectedCampaign] = useState(null);
+  const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
-  const [newCampaign, setNewCampaign] = useState({
+  const [newCampaign, setNewCampaign] = useState<Campaign>({
+    id: '',
     name: '',
     startDate: '',
     startTime: '',
     phoneNumber: '',
     assistant: '',
     description: '',
+    totalCalls: 0,
+    successfulCalls: 0,
+    failedCalls: 0
   });
 
   const handleCreateCampaign = () => {
-    const createdCampaign = {
+    const createdCampaign: Campaign = {
       ...newCampaign,
       id: Math.random().toString(36).substr(2, 9),
-      totalCalls: 0,
-      successfulCalls: 0,
-      failedCalls: 0
     };
     setCampaigns([...campaigns, createdCampaign]);
     setIsCreating(false);
     setNewCampaign({
+      id: '',
       name: '',
       startDate: '',
       startTime: '',
       phoneNumber: '',
       assistant: '',
       description: '',
+      totalCalls: 0,
+      successfulCalls: 0,
+      failedCalls: 0
     });
   };
 
   const handleUpdateCampaign = () => {
-    setCampaigns(campaigns.map(c => c.id === selectedCampaign.id ? selectedCampaign : c));
+    if (selectedCampaign) {
+      setCampaigns(campaigns.map((c: Campaign) => c.id === selectedCampaign.id ? selectedCampaign : c));
+    }
     setSelectedCampaign(null);
+  };
+
+  const handleSelectCampaign = (campaign: Campaign | null) => {
+    if (campaign) {
+      setSelectedCampaign(campaign);
+    } else {
+      setSelectedCampaign(null);
+    }
   };
 
   return (
@@ -80,21 +107,21 @@ export default function Campaigns() {
               + New Campaign
             </Button>
             <ScrollArea className="h-[calc(100vh-300px)]">
-              {campaigns.map((campaign) => (
+              {campaigns.map((campaign: Campaign) => (
                 <div key={campaign.id} className="flex items-center justify-between p-2 mb-2 bg-gray-700 rounded">
                   <span className="text-white">{campaign.name}</span>
                   <div>
                     <Button variant="ghost" size="icon" onClick={() => {
-                      setSelectedCampaign(campaign);
+                      handleSelectCampaign(campaign);
                       setShowDetails(true);
                     }}>
                       <Eye className="h-4 w-4 text-teal-400" />
                     </Button>
-                    <Button variant="ghost" size="icon" onClick={() => setSelectedCampaign(campaign)}>
+                    <Button variant="ghost" size="icon" onClick={() => handleSelectCampaign(campaign)}>
                       <Edit className="h-4 w-4 text-teal-400" />
                     </Button>
                     <Button variant="ghost" size="icon" onClick={() => {
-                      setCampaigns(campaigns.filter(c => c.id !== campaign.id));
+                      setCampaigns(campaigns.filter((c: Campaign) => c.id !== campaign.id));
                     }}>
                       <Trash2 className="h-4 w-4 text-red-400" />
                     </Button>
@@ -116,10 +143,10 @@ export default function Campaigns() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="outbound-phone" className="text-white">Outbound Phone:</Label>
-                  <Select value={isCreating ? newCampaign.phoneNumber : selectedCampaign?.phoneNumber} onValueChange={(value) => {
+                  <Select value={isCreating ? newCampaign.phoneNumber : selectedCampaign?.phoneNumber} onValueChange={(value: string) => {
                     if (isCreating) {
                       setNewCampaign({...newCampaign, phoneNumber: value});
-                    } else {
+                    } else if (selectedCampaign) {
                       setSelectedCampaign({...selectedCampaign, phoneNumber: value});
                     }
                   }}>
@@ -134,10 +161,10 @@ export default function Campaigns() {
                 </div>
                 <div>
                   <Label htmlFor="assistant" className="text-white">Assistant:</Label>
-                  <Select value={isCreating ? newCampaign.assistant : selectedCampaign?.assistant} onValueChange={(value) => {
+                  <Select value={isCreating ? newCampaign.assistant : selectedCampaign?.assistant} onValueChange={(value: string) => {
                     if (isCreating) {
                       setNewCampaign({...newCampaign, assistant: value});
-                    } else {
+                    } else if (selectedCampaign) {
                       setSelectedCampaign({...selectedCampaign, assistant: value});
                     }
                   }}>
@@ -158,10 +185,10 @@ export default function Campaigns() {
                   className="bg-gray-700 text-white border-gray-600" 
                   placeholder="Enter campaign name" 
                   value={isCreating ? newCampaign.name : selectedCampaign?.name}
-                  onChange={(e) => {
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                     if (isCreating) {
                       setNewCampaign({...newCampaign, name: e.target.value});
-                    } else {
+                    } else if (selectedCampaign) {
                       setSelectedCampaign({...selectedCampaign, name: e.target.value});
                     }
                   }}
@@ -175,10 +202,10 @@ export default function Campaigns() {
                     type="date" 
                     className="bg-gray-700 text-white border-gray-600"
                     value={isCreating ? newCampaign.startDate : selectedCampaign?.startDate}
-                    onChange={(e) => {
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                       if (isCreating) {
                         setNewCampaign({...newCampaign, startDate: e.target.value});
-                      } else {
+                      } else if (selectedCampaign) {
                         setSelectedCampaign({...selectedCampaign, startDate: e.target.value});
                       }
                     }}
@@ -191,10 +218,10 @@ export default function Campaigns() {
                     type="time" 
                     className="bg-gray-700 text-white border-gray-600"
                     value={isCreating ? newCampaign.startTime : selectedCampaign?.startTime}
-                    onChange={(e) => {
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                       if (isCreating) {
                         setNewCampaign({...newCampaign, startTime: e.target.value});
-                      } else {
+                      } else if (selectedCampaign) {
                         setSelectedCampaign({...selectedCampaign, startTime: e.target.value});
                       }
                     }}
@@ -208,10 +235,10 @@ export default function Campaigns() {
                   className="bg-gray-700 text-white border-gray-600" 
                   placeholder="Enter description here"
                   value={isCreating ? newCampaign.description : selectedCampaign?.description}
-                  onChange={(e) => {
+                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => {
                     if (isCreating) {
                       setNewCampaign({...newCampaign, description: e.target.value});
-                    } else {
+                    } else if (selectedCampaign) {
                       setSelectedCampaign({...selectedCampaign, description: e.target.value});
                     }
                   }}
@@ -230,7 +257,7 @@ export default function Campaigns() {
               <div>
                 <Label className="text-white mb-2 block">Contact List:</Label>
                 <ScrollArea className="h-40 bg-gray-700 rounded p-2">
-                  {['Malik gee - +12176346394', 'Malik gee - +15005550006', 'dwain brown - +12176346394', 'dwain brown - +19548748669', 'Tommy Jones - 9548986970'].map((contact, index) => (
+                  {['Malik gee - +12176346394', 'Malik gee - +15005550006', 'dwain brown - +12176346394', 'dwain brown - +19548748669', 'Tommy Jones - 9548986970'].map((contact: string, index: number) => (
                     <div key={index} className="flex items-center space-x-2 mb-2">
                       <Checkbox id={`contact-${index}`} />
                       <Label htmlFor={`contact-${index}`} className="text-white">{contact}</Label>

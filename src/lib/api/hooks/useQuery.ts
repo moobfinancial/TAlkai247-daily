@@ -40,8 +40,12 @@ export function useQuery<T>({
       
       const result = await apiClient.get<T>(url);
       
-      setData(result);
-      onSuccess?.(result);
+      if (result?.data) {
+        setData(result.data);
+        onSuccess?.(result.data);
+      } else {
+        throw new Error('No data returned from API');
+      }
     } catch (err) {
       const error = err instanceof Error ? err : new Error('An error occurred');
       setError(error);

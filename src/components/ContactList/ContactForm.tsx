@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Contact, TransparencyLevel, ContactType, Subcategory } from '@/types/contact';
+import { Contact, TransparencyLevel, Subcategory } from '@/types/contact';
 
 interface ContactFormProps {
   isOpen: boolean;
@@ -23,12 +23,11 @@ export function ContactForm({ isOpen, onClose, onSave, contact }: ContactFormPro
       name: formData.get('name') as string,
       email: formData.get('email') as string,
       phone: formData.get('phone') as string,
-      type: formData.get('type') as ContactType,
+      type: formData.get('type') as 'business' | 'personal',
       transparencyLevel: formData.get('transparencyLevel') as TransparencyLevel,
       subcategory: formData.get('subcategory') as Subcategory,
       customSubcategory: formData.get('customSubcategory') as string,
-      campaignName: formData.get('campaignName') as string,
-    };
+    } as Partial<Contact>;
 
     if (contact?.id) {
       contactData.id = contact.id;
@@ -83,13 +82,13 @@ export function ContactForm({ isOpen, onClose, onSave, contact }: ContactFormPro
 
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="type" className="text-right">Type</Label>
-              <Select name="type" defaultValue={contact?.type || 'Personal'}>
+              <Select name="type" defaultValue={contact?.type || 'business'}>
                 <SelectTrigger className="col-span-3 bg-gray-700 text-white border-gray-600">
                   <SelectValue placeholder="Select contact type" />
                 </SelectTrigger>
                 <SelectContent className="bg-gray-800 text-white border-gray-700">
-                  <SelectItem value="Personal">Personal</SelectItem>
-                  <SelectItem value="Campaign">Campaign</SelectItem>
+<SelectItem value="business">Business</SelectItem>
+<SelectItem value="personal">Personal</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -147,7 +146,6 @@ export function ContactForm({ isOpen, onClose, onSave, contact }: ContactFormPro
               <Input
                 id="campaignName"
                 name="campaignName"
-                defaultValue={contact?.campaignName}
                 className="col-span-3 bg-gray-700 text-white border-gray-600"
               />
             </div>

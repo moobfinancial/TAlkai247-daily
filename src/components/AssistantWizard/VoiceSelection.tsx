@@ -9,21 +9,39 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/use-toast";
 import { cartesiaApi } from '@/services/cartesia';
-import { elevenLabsService } from '@/services/elevenlabs';
+import { elevenlabsService } from '@/services/elevenlabs'; 
 import { playhtApi } from '@/services/playht';
 import { deepgramApi } from '@/services/deepgram';
 import { Voice } from '@/components/VoiceLibrary/types';
 
 interface VoiceSelectionProps {
-  formData: any;
-  onNext: (data: any) => void;
+  formData: {
+    name: string;
+    firstMessage: string;
+    systemPrompt: string;
+    tools: Array<{
+      type: string;
+      name: string;
+      config: Record<string, string | number | boolean>;
+    }>;
+    template: any;
+    voiceProvider: string;
+    voiceId: string;
+    volume: number;
+    provider: string;
+    model: string;
+  };
+  onNext: (data: {
+    voiceProvider: string;
+    voiceId: string;
+    volume: number;
+  }) => void;
   onBack: () => void;
 }
 
 export default function VoiceSelection({ formData, onNext, onBack }: VoiceSelectionProps) {
   const [selectedVoice, setSelectedVoice] = useState<Voice | null>(null);
   const [volume, setVolume] = useState<number>(formData.volume || 75);
-  const [isPlaying, setIsPlaying] = useState(false);
   const [voicesByProvider, setVoicesByProvider] = useState<Record<string, Voice[]>>({});
   const [customVoiceId, setCustomVoiceId] = useState('');
   const [customVoiceProvider, setCustomVoiceProvider] = useState('');
@@ -36,16 +54,16 @@ export default function VoiceSelection({ formData, onNext, onBack }: VoiceSelect
   useEffect(() => {
     const fetchVoices = async () => {
       try {
-        const [cartesiaVoices, elevenLabsVoices, playhtVoices, deepgramVoices] = await Promise.all([
+        const [cartesiaVoices, elevenlabsVoices, playhtVoices, deepgramVoices] = await Promise.all([
           cartesiaApi.getVoices(),
-          elevenLabsService.getVoices(),
+          elevenlabsService.getVoices(),
           playhtApi.getVoices(),
           deepgramApi.getVoices()
         ]);
 
         setVoicesByProvider({
           Cartesia: cartesiaVoices.slice(0, 10),
-          ElevenLabs: elevenLabsVoices.slice(0, 10),
+          ElevenLabs: elevenlabsVoices.slice(0, 10),
           PlayHT: playhtVoices.slice(0, 10),
           Deepgram: deepgramVoices.slice(0, 10)
         });
@@ -100,7 +118,7 @@ export default function VoiceSelection({ formData, onNext, onBack }: VoiceSelect
         case 'playht':
           // PlayHT might have samples in different fields
           sampleUrl = voice.preview_url || 
-                     (Array.isArray(voice.samples) && voice.samples[0]) || 
+                     (voice.audioUrl) || 
                      null;
           if (!sampleUrl) {
             throw new Error('No sample available for this PlayHT voice');
@@ -187,19 +205,37 @@ export default function VoiceSelection({ formData, onNext, onBack }: VoiceSelect
     try {
       let voice: Voice | null = null;
       
-      // Fetch voice details based on provider
-      switch (customVoiceProvider.toLowerCase()) {
-        case 'cartesia':
-          voice = await cartesiaApi.getVoice(customVoiceId);
-          break;
+      switch (customVoiceProvider) {
         case 'elevenlabs':
-          voice = await elevenLabsService.getVoice(customVoiceId);
+          // For ElevenLabs, we need to find the voice in the list
+          voice = voicesByProvider.elevenlabs?.find(v => v.id === customVoiceId) || null;
+          if (!voice) {
+            throw new Error('Voice not found in ElevenLabs voices');
+          }
           break;
+            
+        case 'cartesia':
+          // For Cartesia, we need to find the voice in the list
+          voice = voicesByProvider.cartesia?.find(v => v.id === customVoiceId) || null;
+          if (!voice) {
+            throw new Error('Voice not found in Cartesia voices');
+          }
+          break;
+            
         case 'playht':
-          voice = await playhtApi.getVoice(customVoiceId);
+          // For PlayHT, we need to find the voice in the list
+          voice = voicesByProvider.playht?.find(v => v.id === customVoiceId) || null;
+          if (!voice) {
+            throw new Error('Voice not found in PlayHT voices');
+          }
           break;
+            
         case 'deepgram':
-          voice = await deepgramApi.getVoice(customVoiceId);
+          // For Deepgram, we need to find the voice in the list
+          voice = voicesByProvider.deepgram?.find(v => v.id === customVoiceId) || null;
+          if (!voice) {
+            throw new Error('Voice not found in Deepgram voices');
+          }
           break;
         default:
           throw new Error('Unsupported provider');

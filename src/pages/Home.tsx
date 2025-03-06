@@ -1,7 +1,6 @@
-import React from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
-import { Bot, ArrowRight } from 'lucide-react';
+import { Bot } from 'lucide-react';
 
 export default function Home() {
   return (

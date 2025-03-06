@@ -15,12 +15,15 @@ interface ToolConfig {
 }
 
 interface ConfigureToolsProps {
-  formData: any;
-  onNext: (tools: { id: string; config: any }[]) => void;
+  onNext: (tools: Array<{
+    type: string;
+    name: string;
+    config: Record<string, string | number | boolean>;
+  }>) => void;
   onBack: () => void;
 }
 
-export default function ConfigureTools({ formData, onNext, onBack }: ConfigureToolsProps) {
+export default function ConfigureTools({ onNext, onBack }: ConfigureToolsProps) {
   const [selectedTools, setSelectedTools] = React.useState<string[]>([]);
   const [toolConfigs, setToolConfigs] = React.useState<ToolConfig>({
     calendar: { provider: '' },
@@ -59,7 +62,8 @@ export default function ConfigureTools({ formData, onNext, onBack }: ConfigureTo
 
   const handleNext = () => {
     const configuredTools = selectedTools.map(toolId => ({
-      id: toolId,
+      type: toolId,
+      name: tools.find(t => t.id === toolId)?.name || '',
       config: toolConfigs[toolId]
     }));
     onNext(configuredTools);

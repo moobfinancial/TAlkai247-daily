@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Info, Eye, Trash2, Plus, Search, Edit } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import { Info, Trash2, Plus, Search, Edit } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -11,14 +11,27 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 
+interface Category {
+  id: number;
+  name: string;
+  transparencyLevel: number;
+}
+
+interface Level {
+  id: number;
+  name: string;
+  description: string;
+  customPrompt: string;
+}
+
 export function TransparencyLevelsTab() {
   const [showNotification, setShowNotification] = useState(true);
-  const [transparencyLevels, setTransparencyLevels] = useState([
+  const [transparencyLevels, setTransparencyLevels] = useState<Level[]>([
     { id: 1, name: 'Full Disclosure', description: 'The AI assistant fully discloses its nature at the beginning of the call.', customPrompt: '' },
     { id: 2, name: 'Partial Disclosure', description: 'The AI assistant partially discloses its nature if asked during the call.', customPrompt: '' },
     { id: 3, name: 'No Disclosure', description: 'The AI assistant does not disclose its nature unless explicitly instructed to do so.', customPrompt: '' },
   ]);
-  const [categories, setCategories] = useState([
+  const [categories, setCategories] = useState<Category[]>([
     { id: 1, name: 'Family', transparencyLevel: 1 },
     { id: 2, name: 'Friends', transparencyLevel: 2 },
     { id: 3, name: 'Business', transparencyLevel: 2 },
@@ -29,11 +42,11 @@ export function TransparencyLevelsTab() {
     { id: 2, name: 'Jane Smith', email: 'jane@example.com', phone: '+1 (234) 567-8901', category: 2, transparencyOverride: null },
     { id: 3, name: 'Alice Johnson', email: 'alice@example.com', phone: '+1 (345) 678-9012', category: 3, transparencyOverride: 1 },
   ]);
-  const [selectedCategory, setSelectedCategory] = useState(null);
+  const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
   const [showAddCategoryModal, setShowAddCategoryModal] = useState(false);
   const [showLevelModal, setShowLevelModal] = useState(false);
   const [newCategory, setNewCategory] = useState({ name: '', transparencyLevel: 3 });
-  const [editingLevel, setEditingLevel] = useState(null);
+  const [editingLevel, setEditingLevel] = useState<number | null>(null);
   const [levelFormData, setLevelFormData] = useState({ name: '', description: '', customPrompt: '' });
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -64,7 +77,7 @@ export function TransparencyLevelsTab() {
     }
   };
 
-  const handleOpenLevelModal = (level = null) => {
+  const handleOpenLevelModal = (level: Level | null) => {
     if (level) {
       setEditingLevel(level.id);
       setLevelFormData({ name: level.name, description: level.description, customPrompt: level.customPrompt });
@@ -164,7 +177,7 @@ export function TransparencyLevelsTab() {
             </CardHeader>
             <CardContent>
               <div className="mb-4">
-                <Button onClick={() => handleOpenLevelModal()} className="bg-teal-600 hover:bg-teal-700 text-white">
+                <Button onClick={() => handleOpenLevelModal(null)} className="bg-teal-600 hover:bg-teal-700 text-white">
                   <Plus className="mr-2 h-4 w-4" /> Add New Level
                 </Button>
               </div>

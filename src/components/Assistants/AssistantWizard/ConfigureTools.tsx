@@ -2,14 +2,20 @@ import React from 'react';
 import { Calendar, Globe, MessageSquare } from 'lucide-react';
 
 interface ConfigureToolsProps {
-  formData: any;
   onNext: (tools: any[]) => void;
   onBack: () => void;
 }
 
-export default function ConfigureTools({ formData, onNext, onBack }: ConfigureToolsProps) {
+interface ToolConfigs {
+  calendar: { provider: string };
+  scraping: { url: string };
+  sms: { apiKey: string; fromNumber: string };
+  [key: string]: any;
+}
+
+export default function ConfigureTools({ onNext, onBack }: ConfigureToolsProps) {
   const [selectedTools, setSelectedTools] = React.useState<string[]>([]);
-  const [toolConfigs, setToolConfigs] = React.useState({
+  const [toolConfigs, setToolConfigs] = React.useState<ToolConfigs>({
     calendar: { provider: '' },
     scraping: { url: '' },
     sms: { apiKey: '', fromNumber: '' }

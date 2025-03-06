@@ -2,7 +2,7 @@ import { Card } from "@/components/ui/card";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { CallInterface } from './CallInterface';
 import { WhisperTemplates } from './WhisperTemplates';
-import { ContactSelector } from './ContactSelector';
+import { ContactSelector, Contact } from './ContactSelector';
 import { useWhisperState } from './hooks/useWhisperState';
 
 export default function WhisperComponent() {
@@ -30,7 +30,7 @@ export default function WhisperComponent() {
               <ContactSelector
                 contacts={state.contacts}
                 selectedContact={state.selectedContact}
-                onSelectContact={handleSelectContact}
+                onSelectContact={(contact: Contact) => handleSelectContact(contact)}
               />
             </div>
           )}

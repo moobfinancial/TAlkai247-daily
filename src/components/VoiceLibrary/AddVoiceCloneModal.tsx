@@ -1,71 +1,87 @@
+import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { AlertTriangle, Upload, Mic, X } from "lucide-react";
-import { useState } from "react";
-import { useToast } from "@/components/ui/use-toast";
+import { Textarea } from "@/components/ui/textarea";
+import { Mic, Upload, X, AlertTriangle } from 'lucide-react';
+import { toast } from "@/components/ui/use-toast";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface AddVoiceCloneModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onAddVoice: (voice: any) => void;
+  onAddVoice: (voice: {
+    id: string;
+    name: string;
+    description: string;
+    provider: string;
+    audioUrl?: string;
+  }) => void;
 }
 
 export function AddVoiceCloneModal({ isOpen, onClose, onAddVoice }: AddVoiceCloneModalProps) {
-  const { toast } = useToast();
+  const [isRecording, setIsRecording] = useState(false);
+  const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   const [voiceName, setVoiceName] = useState("");
   const [voiceDescription, setVoiceDescription] = useState("");
-  const [isRecording, setIsRecording] = useState(false);
-  const [audioFile, setAudioFile] = useState<File | null>(null);
   const [agreeToTerms, setAgreeToTerms] = useState(false);
 
-  const handleStartRecording = () => {
-    setIsRecording(true);
-    // Request microphone access and start recording
-    navigator.mediaDevices.getUserMedia({ audio: true })
-      .then(stream => {
-        // Implement recording logic here
-        toast({
-          title: "Recording Started",
-          description: "Speak clearly into your microphone."
-        });
-      })
-      .catch(err => {
-        toast({
-          title: "Recording Error",
-          description: "Could not access microphone.",
-          variant: "destructive"
-        });
+  const handleStartRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      const chunks: BlobPart[] = [];
+      
+      mediaRecorder.ondataavailable = (e) => {
+        chunks.push(e.data);
+      };
+      
+      mediaRecorder.onstop = () => {
+        const blob = new Blob(chunks, { type: 'audio/wav' });
+        setAudioBlob(blob);
         setIsRecording(false);
+      };
+      
+      setIsRecording(true);
+      mediaRecorder.start();
+      
+      // Stop recording after 30 seconds
+      setTimeout(() => {
+        if (mediaRecorder.state !== 'inactive') {
+          mediaRecorder.stop();
+        }
+      }, 30000);
+      
+    } catch (error) {
+      console.error('Error starting recording:', error);
+      setIsRecording(false);
+      toast({
+        title: "Recording Error",
+        description: "Could not access microphone. Please check permissions.",
+        variant: "destructive",
       });
+    }
   };
 
   const handleStopRecording = () => {
     setIsRecording(false);
-    // Stop recording logic here
-    toast({
-      title: "Recording Stopped",
-      description: "Your voice sample has been captured."
-    });
   };
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
       if (file.type.startsWith('audio/')) {
-        setAudioFile(file);
+        setAudioBlob(file);
         toast({
           title: "File Uploaded",
-          description: "Audio file has been selected for voice cloning."
+          description: "Audio file has been selected for voice cloning.",
         });
       } else {
         toast({
           title: "Invalid File",
           description: "Please upload an audio file.",
-          variant: "destructive"
+          variant: "destructive",
         });
       }
     }
@@ -76,7 +92,7 @@ export function AddVoiceCloneModal({ isOpen, onClose, onAddVoice }: AddVoiceClon
       toast({
         title: "Terms Required",
         description: "Please agree to the terms before submitting.",
-        variant: "destructive"
+        variant: "destructive",
       });
       return;
     }
@@ -85,35 +101,37 @@ export function AddVoiceCloneModal({ isOpen, onClose, onAddVoice }: AddVoiceClon
       toast({
         title: "Name Required",
         description: "Please provide a name for your voice clone.",
-        variant: "destructive"
+        variant: "destructive",
       });
       return;
     }
 
-    if (!audioFile) {
+    if (!audioBlob) {
       toast({
         title: "Audio Required",
         description: "Please provide an audio sample for cloning.",
-        variant: "destructive"
+        variant: "destructive",
       });
       return;
     }
 
     onAddVoice({
+      id: '',
       name: voiceName,
       description: voiceDescription,
-      audioFile: audioFile,
+      provider: '',
+      audioUrl: URL.createObjectURL(audioBlob),
     });
 
     // Reset form
     setVoiceName("");
     setVoiceDescription("");
-    setAudioFile(null);
+    setAudioBlob(null);
     setAgreeToTerms(false);
     
     toast({
       title: "Voice Clone Created",
-      description: "Your voice clone is being processed and will be available soon."
+      description: "Your voice clone is being processed and will be available soon.",
     });
   };
 
@@ -175,9 +193,9 @@ export function AddVoiceCloneModal({ isOpen, onClose, onAddVoice }: AddVoiceClon
               </>
             )}
           </Button>
-          {audioFile && (
+          {audioBlob && (
             <div className="bg-gray-700 p-2 rounded">
-              <audio controls src={URL.createObjectURL(audioFile)} className="w-full" />
+              <audio controls src={URL.createObjectURL(audioBlob)} className="w-full" />
             </div>
           )}
           <div className="flex items-center space-x-2">

@@ -86,7 +86,7 @@ export function validateWhisperTemplate(data: unknown): ValidationResult<z.infer
   }
 }
 
-export function validatePartial<T extends z.ZodType>(schema: T, data: unknown): ValidationResult<Partial<z.infer<T>>> {
+export function validatePartial<T extends z.ZodTypeAny & { partial: () => z.ZodTypeAny }>(schema: T, data: unknown): ValidationResult<Partial<z.infer<T>>> {
   try {
     const partialSchema = schema.partial();
     const validData = partialSchema.parse(data);

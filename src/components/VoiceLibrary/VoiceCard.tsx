@@ -1,35 +1,18 @@
-import React, { useState } from 'react';
-import { Card, CardContent } from "@/components/ui/card";
+import { useState } from 'react';
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { PlayCircle, PauseCircle, Copy } from 'lucide-react';
-import { elevenLabsService } from '@/services/elevenlabs';
+import { elevenlabsService } from '@/services/elevenlabs';
 import { deepgramApi } from '@/services/deepgram';
 import { playhtApi } from '@/services/playht';
 import { cartesiaApi } from '@/services/cartesia';
-import type { Voice } from './types';
+import type { Voice as VoiceType } from './types';
 import { toast } from '@/components/ui/use-toast';
 
-interface Voice {
-  id: number | string;
-  name: string;
-  gender: string;
-  nationality: string;
-  language: string;
-  provider: string;
-  traits: string[];
-  preview_url?: string;
-  eleven_labs_id?: string;
-  deepgram_id?: string;
-  playht_id?: string;
-  cartesia_id?: string;
-  category?: string;
-  available_for_tiers?: string[];
-}
-
 interface VoiceCardProps {
-  voice: Voice;
-  onSelect: (voice: Voice) => void;
+  voice: VoiceType;
+  onSelect: (voice: VoiceType) => void;
 }
 
 export function VoiceCard({ voice, onSelect }: VoiceCardProps) {
@@ -53,7 +36,7 @@ export function VoiceCard({ voice, onSelect }: VoiceCardProps) {
       
       switch (voice.provider) {
         case "ElevenLabs":
-          audioData = await elevenLabsService.previewVoice(voice.eleven_labs_id!, voice.preview_url);
+          audioData = await elevenlabsService.previewVoice(voice.eleven_labs_id!, voice.preview_url);
           break;
         case "Deepgram":
           audioData = await deepgramApi.previewVoice(voice.deepgram_id!);

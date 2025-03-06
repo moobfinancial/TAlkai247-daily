@@ -1,12 +1,11 @@
 "use client"
 
-import { useState } from 'react'
-import { Card } from "@/components/ui/card"
-import { TooltipProvider } from "@/components/ui/tooltip"
-import { CallInterface } from '@/components/Whisper/CallInterface'
-import { WhisperTemplates } from '@/components/Whisper/WhisperTemplates'
-import { ContactSelector } from '@/components/Whisper/ContactSelector'
-import { useWhisperState } from '@/components/Whisper/hooks/useWhisperState'
+import { Card } from "@/components/ui/card";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { CallInterface } from '@/components/Whisper/CallInterface';
+import { WhisperTemplates } from '@/components/Whisper/WhisperTemplates';
+import { ContactSelector, Contact } from '@/components/Whisper/ContactSelector';
+import { useWhisperState } from '@/components/Whisper/hooks/useWhisperState';
 
 export default function WhisperTab() {
   const {
@@ -14,10 +13,13 @@ export default function WhisperTab() {
     set,
     handleStartCall,
     handleEndCall,
-    handleSelectContact,
     handleSendMessage,
     handleVoiceInput,
   } = useWhisperState();
+
+  const handleSelectContact = (contact: Contact) => {
+    set('selectedContact', contact);
+  };
 
   return (
     <TooltipProvider>

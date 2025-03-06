@@ -1,4 +1,3 @@
-import React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
@@ -33,7 +32,7 @@ export function QuickView({ contact, isOpen, onClose }: QuickViewProps) {
           <div className="grid grid-cols-4 items-center gap-4">
             <Label className="text-right font-bold text-gray-200">Type:</Label>
             <span className="col-span-3">
-              <Badge variant={contact.type === 'Personal' ? 'default' : 'secondary'}>
+              <Badge variant={contact.type === 'personal' ? 'default' : 'secondary'}>
                 {contact.type}
               </Badge>
             </span>
@@ -52,7 +51,7 @@ export function QuickView({ contact, isOpen, onClose }: QuickViewProps) {
               )}
             </div>
           </div>
-          {contact.type === 'Personal' && (
+          {contact.type === 'personal' && (
             <>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label className="text-right font-bold text-gray-200">Transparency Level:</Label>

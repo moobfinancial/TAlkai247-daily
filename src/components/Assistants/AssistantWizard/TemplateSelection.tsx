@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Eye, Plus } from 'lucide-react';
 
 interface Template {
@@ -12,8 +12,8 @@ interface Template {
 }
 
 interface TemplateSelectionProps {
-  onNext: (template: Template) => void;
-  onClose: () => void;
+  formData: any;
+  onNext: (template: any) => void;
 }
 
 const systemTemplates: Template[] = [
@@ -37,7 +37,7 @@ const systemTemplates: Template[] = [
   }
 ];
 
-export default function TemplateSelection({ onNext, onClose }: TemplateSelectionProps) {
+export default function TemplateSelection({ onNext }: TemplateSelectionProps) {
   const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
 

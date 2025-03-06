@@ -1,17 +1,19 @@
 import axios from 'axios';
+import { AssistantTool } from '@/types/schema';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
 // Assistant types
 export interface Assistant {
   id: string;
+  userId: string;
   name: string;
   firstMessage: string;
   systemPrompt: string;
   provider: string;
   model: string;
-  tools: any[];
-  voice?: {
+  tools: AssistantTool[];
+  voice: {
     provider: string;
     voiceId: string;
     settings: {
@@ -22,8 +24,9 @@ export interface Assistant {
     };
   };
   isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
+  createdAt: Date;
+  updatedAt: Date;
+  modes: ('web' | 'voice')[];
 }
 
 export interface ApiResponse<T> {

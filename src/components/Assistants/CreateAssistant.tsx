@@ -9,7 +9,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { assistantsApi } from '@/lib/api/assistants';
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { X } from "@/components/icons/x";
+import { X } from "lucide-react";
 
 interface Model {
   id: string;
@@ -53,7 +53,7 @@ export default function CreateAssistant({ isOpen, onClose, onCreated }: CreateAs
     const fetchModels = async () => {
       try {
         const response = await assistantsApi.getModels();
-        setModels(response);
+        setModels(response.data || []);
       } catch (error) {
         toast({
           title: "Error",

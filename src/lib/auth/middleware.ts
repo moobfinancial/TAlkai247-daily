@@ -1,11 +1,15 @@
 import { Request, Response, NextFunction } from 'express';
 import { verifyToken, JWTPayload } from './jwt';
-import { prisma } from '@/lib/prisma';
+import { prisma } from '../../lib/prisma';
 
+// Extend Express Request interface to include token and payload properties
 declare global {
   namespace Express {
     interface Request {
-      user?: any;
+      user?: {
+        id: string;
+        [key: string]: any;
+      };
       token?: string;
       payload?: JWTPayload;
     }

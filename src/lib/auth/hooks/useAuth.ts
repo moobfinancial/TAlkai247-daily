@@ -30,7 +30,6 @@ export function useAuth() {
       const data = await response.json();
       setUser(data.data);
     } catch (err) {
-      setError(err.message);
       localStorage.removeItem('token');
     } finally {
       setLoading(false);
@@ -39,7 +38,6 @@ export function useAuth() {
 
   const login = async (credentials: LoginCredentials) => {
     try {
-      setError(null);
       const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: {
@@ -49,16 +47,14 @@ export function useAuth() {
       });
 
       if (!response.ok) {
-        throw new Error('Invalid credentials');
+        throw new Error('Failed to login');
       }
 
-      const data: AuthResponse = await response.json();
+      const data = await response.json();
+      setUser(data.data);
       localStorage.setItem('token', data.token);
-      setUser(data.user);
-      return data;
     } catch (err) {
-      setError(err.message);
-      throw err;
+      setError((err as Error).message);
     }
   };
 
@@ -82,7 +78,7 @@ export function useAuth() {
       setUser(responseData.user);
       return responseData;
     } catch (err) {
-      setError(err.message);
+      setError((err as Error).message);
       throw err;
     }
   };
@@ -104,5 +100,7 @@ export function useAuth() {
     register,
     logout,
     updateUser,
+    setUser,
+    setError,
   };
 }

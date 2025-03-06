@@ -1,7 +1,7 @@
 import React from 'react';
 import ModelSelection from '@/components/LLM/ModelSelection';
 import { useModelList } from '@/hooks/useModelList';
-import toast from '@/components/Toast';
+import { toast } from '@/components/ui/use-toast';
 
 interface CustomizeAssistantProps {
   formData: any;
@@ -16,7 +16,7 @@ export default function CustomizeAssistant({ formData, onNext, onBack }: Customi
   const [provider, setProvider] = React.useState(formData.provider || '');
   const [model, setModel] = React.useState(formData.model || '');
   
-  const { models, isLoading } = useModelList();
+  const { models } = useModelList();
 
   const handleNext = () => {
     if (!name?.trim()) {

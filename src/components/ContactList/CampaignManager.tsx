@@ -5,17 +5,16 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Campaign } from '@/types/contact';
 
 interface CampaignManagerProps {
   open: boolean;
   onClose: () => void;
-  onSave: (campaign: Campaign) => void;
-  campaign?: Campaign | null;
+  onSave: (campaign: any) => void;
+  campaign?: any | null;
 }
 
 export function CampaignManager({ open, onClose, onSave, campaign }: CampaignManagerProps) {
-  const [formData, setFormData] = React.useState<Campaign>({
+  const [formData, setFormData] = React.useState({
     id: campaign?.id || '',
     name: campaign?.name || '',
     description: campaign?.description || '',
@@ -90,7 +89,7 @@ export function CampaignManager({ open, onClose, onSave, campaign }: CampaignMan
               <Label htmlFor="status">Status</Label>
               <Select
                 value={formData.status}
-                onValueChange={(value: Campaign['status']) => 
+                onValueChange={(value) => 
                   setFormData({ ...formData, status: value })
                 }
               >

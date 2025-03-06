@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { X } from 'lucide-react';
 import TemplateSelection from './TemplateSelection';
 import CustomizeAssistant from './CustomizeAssistant';
@@ -99,8 +99,7 @@ export default function AssistantWizard({ onClose, onComplete }: AssistantWizard
           )}
           {currentStep === 4 && (
             <ConfigureTools
-              formData={formData}
-              onNext={handleNext}
+              onNext={(tools) => handleNext({ ...formData, tools })}
               onBack={handleBack}
             />
           )}

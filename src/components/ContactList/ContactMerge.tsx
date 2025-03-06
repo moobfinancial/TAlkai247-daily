@@ -1,10 +1,10 @@
-import React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Contact } from '@/types/contact';
 import { GitMerge } from 'lucide-react';
+import React from 'react';
 
 interface ContactMergeProps {
   contacts: Contact[];
@@ -25,23 +25,18 @@ export function ContactMerge({ contacts, onMerge }: ContactMergeProps) {
   ];
 
   const handleMerge = () => {
+    // Use the ID from the first contact
+    const baseContact = contacts[0];
+    
     const mergedContact: Contact = {
-      id: Date.now().toString(),
-      ...contacts[0], // Base contact
+      ...baseContact, // Base contact
       ...Object.fromEntries(
-        Object.entries(selectedValues).map(([key, value]) => [
-          key,
-          contacts.find(c => c.id === value)?.[key as keyof Contact]
-        ])
+        Object.entries(selectedValues).map(([key, value]) => [key, value])
       ),
       // Merge tags
       tags: Array.from(new Set(contacts.flatMap(c => c.tags || []))),
       // Merge goals
       goals: contacts.flatMap(c => c.goals || []),
-      // Merge timeline
-      timeline: contacts.flatMap(c => c.timeline || []).sort((a, b) => 
-        new Date(b.date).getTime() - new Date(a.date).getTime()
-      )
     };
 
     onMerge(mergedContact);
@@ -91,7 +86,7 @@ export function ContactMerge({ contacts, onMerge }: ContactMergeProps) {
             <div className="space-y-2">
               <Label>Additional Information</Label>
               <p className="text-sm text-gray-400">
-                Tags, goals, and timeline entries will be combined from all contacts.
+                Tags and goals will be combined from all contacts.
               </p>
             </div>
           </div>

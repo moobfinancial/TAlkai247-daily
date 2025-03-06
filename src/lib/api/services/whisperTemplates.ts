@@ -8,7 +8,10 @@ export const whisperTemplatesApi = {
     search?: string;
     type?: 'BUSINESS' | 'PERSONAL';
     includeSystem?: boolean;
-  }) => apiClient.get<PaginatedResponse<WhisperTemplate>>('/whisper-templates', { params }),
+  }) => {
+    const query = new URLSearchParams(params as any).toString();
+    return apiClient.get<PaginatedResponse<WhisperTemplate>>(`/whisper-templates?${query}`);
+  },
 
   getTemplate: (id: string) => 
     apiClient.get<WhisperTemplate>(`/whisper-templates/${id}`),

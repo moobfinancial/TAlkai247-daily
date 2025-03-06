@@ -1,5 +1,11 @@
-import React, { useState } from 'react';
-import { Share2, Settings, Mic, Trash2 } from 'lucide-react';
+import { useState } from 'react';
+import { Share2, Settings } from 'lucide-react';
+
+interface Tool {
+  id: string;
+  type?: string;
+  config: Record<string, string | number | boolean>;
+}
 
 interface AssistantCardProps {
   name: string;
@@ -9,8 +15,7 @@ interface AssistantCardProps {
   systemPrompt: string;
   provider: string;
   model: string;
-  tools: string[];
-  onDelete?: () => void;
+  tools: Tool[];
 }
 
 export default function AssistantCard({
@@ -21,8 +26,7 @@ export default function AssistantCard({
   systemPrompt,
   provider,
   model,
-  tools,
-  onDelete
+  tools
 }: AssistantCardProps) {
   const [activeTab, setActiveTab] = useState('model');
 
@@ -128,9 +132,9 @@ export default function AssistantCard({
 
         {activeTab === 'tools' && (
           <div className="space-y-4">
-            {tools.map((tool, index) => (
-              <div key={index} className="flex items-center justify-between bg-[#2a2f3e] p-4 rounded-lg">
-                <span className="text-white">{tool}</span>
+            {tools.map((tool) => (
+              <div key={tool.id} className="flex items-center justify-between bg-[#2a2f3e] p-4 rounded-lg">
+                <span className="text-white">{tool.id}</span>
                 <button className="px-4 py-2 bg-[#14b8a6] text-white rounded-lg hover:bg-[#0d9488]">
                   Configure
                 </button>
@@ -146,7 +150,7 @@ export default function AssistantCard({
                 <h3 className="text-white mb-2">Provider</h3>
                 <select className="w-full bg-[#2a2f3e] text-white px-4 py-2 rounded-lg">
                   <option value="playht">Playht</option>
-                  <option value="elevenlabs">ElevenLabs</option>
+                  <option value="elevenlabs">Elevenlabs</option>
                 </select>
               </div>
               <div>

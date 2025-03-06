@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -12,15 +12,6 @@ interface CustomizeAssistantProps {
   onNext: (data: any) => void;
   onBack: () => void;
 }
-
-const providers = [
-  { id: 'openai', name: 'OpenAI' },
-  { id: 'anthropic', name: 'Anthropic' },
-  { id: 'google', name: 'Google' },
-  { id: 'meta', name: 'Meta' },
-  { id: 'mistral', name: 'Mistral AI' },
-  { id: 'groq', name: 'Groq' }
-];
 
 export default function CustomizeAssistant({ formData, onNext, onBack }: CustomizeAssistantProps) {
   const [name, setName] = useState(formData.name || '');

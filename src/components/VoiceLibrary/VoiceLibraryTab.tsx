@@ -1,16 +1,23 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Plus } from 'lucide-react';
 import { VoiceCard } from './VoiceCard';
 import { VoiceFilters } from './VoiceFilters';
-import { AddVoiceCloneModal } from './AddVoiceCloneModal';
 import { VoiceDetailsModal } from './VoiceDetailsModal';
-import type { Voice, Provider } from './types';
-import { elevenLabsService } from '@/services/elevenlabs';
+import { AddVoiceCloneModal } from './AddVoiceCloneModal';
+import { useToast } from "@/components/ui/use-toast";
+import { elevenlabsService } from '@/services/elevenlabs'; 
 import { deepgramApi } from '@/services/deepgram';
 import { playhtApi } from '@/services/playht';
 import { cartesiaApi } from '@/services/cartesia';
-import { toast } from '@/components/ui/use-toast';
+import type { 
+  Voice, 
+  Provider, 
+  DeepgramVoice, 
+  PlayHTVoice, 
+  CartesiaVoice 
+} from './types';
+import type { ElevenLabsVoice as ElevenLabsAPIVoice } from '@/types/elevenlabs'; 
 
 const allLanguages = [
   "English", "Spanish (Spain)", "Spanish (Mexico)", "French (France)", "French (Canada)",
@@ -19,11 +26,11 @@ const allLanguages = [
 ];
 
 const allProviders: Provider[] = [
-  { name: "ElevenLabs", status: "Premium", languages: ["English"] },
-  { name: "Deepgram", status: "Included", languages: ["English"] },
-  { name: "Playht", status: "Premium", languages: allLanguages },
-  { name: "Cartesia", status: "Premium", languages: ["English"] },
-  { name: "Azure", status: "Included", languages: allLanguages },
+  { name: "elevenlabs", status: "Premium", description: "High-quality voice synthesis" },
+  { name: "deepgram", status: "Included", description: "Fast and accurate voice models" },
+  { name: "playht", status: "Premium", description: "Realistic voice cloning" },
+  { name: "cartesia", status: "Included", description: "Natural-sounding voices" },
+  { name: "custom", status: "Included", description: "Your custom voice clones" }
 ];
 
 export default function VoiceLibraryTab() {
@@ -35,67 +42,46 @@ export default function VoiceLibraryTab() {
   const [showVoiceDetailsModal, setShowVoiceDetailsModal] = useState(false);
   const [selectedVoice, setSelectedVoice] = useState<Voice | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const { toast } = useToast();
 
   useEffect(() => {
     const fetchVoices = async () => {
       try {
         setIsLoading(true);
-        console.log('Fetching voices...');
+        // Use public methods instead of private ones
+        const elevenlabsVoices: ElevenLabsAPIVoice[] = await elevenlabsService.getVoices();
         
-        // Fetch ElevenLabs voices
-        let formattedElevenLabsVoices: Voice[] = [];
-        try {
-          const elevenLabsVoices = await elevenLabsService.getAllVoices();
-          formattedElevenLabsVoices = elevenLabsVoices.map((voice) => {
-            // Get all non-empty labels
-            const traits = Object.entries(voice.labels || {})
-              .filter(([_, value]) => value && typeof value === 'string')
-              .map(([key, value]) => `${key}: ${value}`);
-
-            // Add category if it exists
-            if (voice.category) {
-              traits.unshift(`Category: ${voice.category}`);
-            }
-
-            return {
-              id: voice.voice_id,
-              name: voice.name,
-              gender: voice.labels?.gender || "Not specified",
-              nationality: voice.labels?.accent || "Not specified",
-              language: voice.fine_tuning?.language || "English",
-              provider: "ElevenLabs",
-              traits: traits.filter(Boolean),
-              preview_url: voice.preview_url,
-              eleven_labs_id: voice.voice_id,
-              category: voice.category,
-              available_for_tiers: voice.available_for_tiers
-            };
-          });
-        } catch (error) {
-          console.error('Error fetching ElevenLabs voices:', error);
-          toast({
-            title: "Warning",
-            description: "Failed to fetch ElevenLabs voices. Other voices will still be available.",
-            variant: "default",
-          });
+        if (!elevenlabsVoices || elevenlabsVoices.length === 0) {
+          console.warn('No voices received from ElevenLabs API');
+          return;
         }
+
+        // Create formatted voices directly with proper typing
+        const formattedElevenlabsVoices: Voice[] = elevenlabsVoices.map((voice: ElevenLabsAPIVoice) => ({
+          id: voice.voice_id || `elevenlabs-${Date.now()}`,
+          name: voice.name,
+          gender: voice.labels?.gender || 'Unknown',
+          nationality: voice.labels?.nationality || 'Unknown',
+          language: voice.labels?.language || 'en',
+          provider: 'elevenlabs',
+          traits: voice.labels ? Object.values(voice.labels).filter(Boolean) as string[] : [],
+          preview_url: voice.preview_url || '',
+          elevenlabs_id: voice.voice_id
+        }));
 
         // Fetch Deepgram voices
         let formattedDeepgramVoices: Voice[] = [];
         try {
-          const deepgramVoices = await deepgramApi.getVoices();
-          formattedDeepgramVoices = deepgramVoices.map((voice) => ({
-            id: voice.model_id,
+          const deepgramVoices: DeepgramVoice[] = await deepgramApi.getVoices();
+          formattedDeepgramVoices = deepgramVoices.map(voice => ({
+            id: voice.id || `deepgram-${Date.now()}`,
             name: voice.name,
-            gender: voice.gender,
-            nationality: "Not specified",
-            language: voice.language,
-            provider: "Deepgram",
-            traits: [
-              voice.description || "",
-            ].filter(Boolean),
-            preview_url: voice.preview_url,
-            deepgram_id: voice.model_id
+            gender: voice.gender || 'Unknown',
+            nationality: 'Unknown',
+            language: voice.language || 'en',
+            provider: 'deepgram',
+            traits: voice.description ? [voice.description] : [],
+            deepgram_id: voice.id
           }));
         } catch (error) {
           console.error('Error fetching Deepgram voices:', error);
@@ -109,19 +95,15 @@ export default function VoiceLibraryTab() {
         // Fetch PlayHT voices
         let formattedPlayhtVoices: Voice[] = [];
         try {
-          const playhtVoices = await playhtApi.getVoices();
-          formattedPlayhtVoices = playhtVoices.map((voice) => ({
-            id: voice.id,
+          const playhtVoices: PlayHTVoice[] = await playhtApi.getVoices();
+          formattedPlayhtVoices = playhtVoices.map(voice => ({
+            id: voice.id || `playht-${Date.now()}`,
             name: voice.name,
-            gender: voice.gender,
-            nationality: "Not specified",
-            language: voice.language,
-            provider: "Playht",
-            traits: [
-              voice.voiceEngine,
-              voice.description || "",
-            ].filter(Boolean),
-            preview_url: voice.preview_url,
+            gender: voice.gender || 'Unknown',
+            nationality: 'Unknown',
+            language: voice.language || 'en',
+            provider: 'playht',
+            traits: Array.isArray(voice.traits) ? voice.traits : (voice.description ? [voice.description] : []),
             playht_id: voice.id
           }));
         } catch (error) {
@@ -136,19 +118,17 @@ export default function VoiceLibraryTab() {
         // Fetch Cartesia voices
         let formattedCartesiaVoices: Voice[] = [];
         try {
-          const cartesiaVoices = await cartesiaApi.getVoices();
-          formattedCartesiaVoices = cartesiaVoices.map((voice) => ({
-            id: voice.id,
+          const cartesiaVoices: CartesiaVoice[] = await cartesiaApi.getVoices();
+          formattedCartesiaVoices = cartesiaVoices.map(voice => ({
+            id: voice.id || `cartesia-${Date.now()}`,
             name: voice.name,
-            gender: voice.gender || "Not specified",
-            nationality: "Not specified",
-            language: voice.language || "English",
-            provider: "Cartesia",
-            traits: [
-              voice.description || "",
-              voice.category ? `Category: ${voice.category}` : "",
-            ].filter(Boolean),
-            cartesia_id: voice.id
+            gender: voice.gender || 'Unknown',
+            nationality: 'Unknown',
+            language: voice.language || 'en',
+            provider: 'cartesia',
+            traits: voice.description ? [voice.description] : [],
+            cartesia_id: voice.id,
+            category: voice.category || 'General'
           }));
         } catch (error) {
           console.error('Error fetching Cartesia voices:', error);
@@ -160,15 +140,19 @@ export default function VoiceLibraryTab() {
         }
 
         // Combine all voices
-        const allVoices = [
-          ...formattedElevenLabsVoices,
+        setVoices([
+          ...formattedElevenlabsVoices,
           ...formattedDeepgramVoices,
           ...formattedPlayhtVoices,
           ...formattedCartesiaVoices
-        ];
+        ]);
         
-        console.log('All voices:', allVoices);
-        setVoices(allVoices);
+        console.log('All voices:', [
+          ...formattedElevenlabsVoices,
+          ...formattedDeepgramVoices,
+          ...formattedPlayhtVoices,
+          ...formattedCartesiaVoices
+        ]);
       } catch (error) {
         console.error('Error fetching voices:', error);
         toast({
@@ -186,14 +170,23 @@ export default function VoiceLibraryTab() {
 
   const filteredVoices = voices.filter((voice) => {
     const matchesSearch = voice.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         voice.nationality.toLowerCase().includes(searchQuery.toLowerCase());
+                         (voice.nationality ? voice.nationality.toLowerCase().includes(searchQuery.toLowerCase()) : false);
     const matchesLanguage = selectedLanguage === "All Languages" || voice.language === selectedLanguage;
     const matchesProvider = selectedProvider === "All Providers" || voice.provider === selectedProvider;
     return matchesSearch && matchesLanguage && matchesProvider;
   });
 
   const handleVoiceSelect = (voice: Voice) => {
-    setSelectedVoice(voice);
+    setSelectedVoice({
+      id: voice.id,
+      name: voice.name,
+      gender: voice.gender,
+      nationality: voice.nationality,
+      language: voice.language,
+      provider: voice.provider,
+      traits: voice.traits,
+      preview_url: voice.preview_url
+    });
     setShowVoiceDetailsModal(true);
   };
 
@@ -219,6 +212,10 @@ export default function VoiceLibraryTab() {
         onProviderChange={setSelectedProvider}
         languages={allLanguages}
         providers={allProviders}
+        onFilterChange={(language, provider) => {
+          setSelectedLanguage(language);
+          setSelectedProvider(provider);
+        }}
       />
 
       {isLoading ? (
@@ -244,12 +241,26 @@ export default function VoiceLibraryTab() {
       <AddVoiceCloneModal
         isOpen={showAddVoiceModal}
         onClose={() => setShowAddVoiceModal(false)}
+        onAddVoice={(newVoice) => {
+          // Handle adding the new voice
+          const voiceWithId = {
+            ...newVoice,
+            id: `custom-${Date.now()}`,
+            provider: 'custom',
+            traits: ['Custom'],
+            nationality: 'Custom',
+            gender: 'Other',
+            language: 'English'
+          };
+          setVoices(prev => [...prev, voiceWithId]);
+          setShowAddVoiceModal(false);
+        }}
       />
 
       <VoiceDetailsModal
-        voice={selectedVoice}
         isOpen={showVoiceDetailsModal}
         onClose={() => setShowVoiceDetailsModal(false)}
+        voice={selectedVoice}
         providers={allProviders}
       />
     </div>

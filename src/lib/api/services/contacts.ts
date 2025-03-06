@@ -6,9 +6,10 @@ export const contactsApi = {
     page?: number;
     pageSize?: number;
     search?: string;
-    type?: 'PERSONAL' | 'BUSINESS';
-    campaignId?: string;
-  }) => apiClient.get<PaginatedResponse<Contact>>('/contacts', { params }),
+  }) => {
+    const query = new URLSearchParams(params as any).toString();
+    return apiClient.get<PaginatedResponse<Contact>>(`/contacts?${query}`);
+  },
 
   getContact: (id: string) => 
     apiClient.get<Contact>(`/contacts/${id}`),

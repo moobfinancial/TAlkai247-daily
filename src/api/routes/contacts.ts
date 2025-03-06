@@ -1,10 +1,50 @@
 import { Router } from 'express';
-import { prisma } from '@/lib/prisma';
-import { validateContact } from '@/lib/validation';
-import type { Contact } from '@/types/schema';
-import type { ApiResponse, PaginatedResponse } from '@/types/schema';
+import { prisma } from '../../lib/prisma';
+import { validateContact } from '../../lib/validation';
+import type { Contact } from '../../types/schema';
+import type { ApiResponse, PaginatedResponse } from '../../types/schema';
+import { Prisma, ContactType, TransparencyLevel } from '@prisma/client';
+import { z } from 'zod';
+
+// Define the ValidationResult type to match what's in validation/index.ts
+type ValidationResult<T> = {
+  success: boolean;
+  data?: T;
+  errors?: z.ZodError;
+};
+
+// Extend Express Request interface to include user property
+declare global {
+  namespace Express {
+    interface Request {
+      user?: {
+        id: string;
+        [key: string]: any;
+      };
+    }
+  }
+}
 
 const router = Router();
+
+// Map Prisma enum values to schema string literals
+const mapContactType = (type: ContactType): 'personal' | 'business' => {
+  const typeMap: Record<ContactType, 'personal' | 'business'> = {
+    [ContactType.PERSONAL]: 'personal',
+    [ContactType.BUSINESS]: 'business'
+  };
+  return typeMap[type];
+};
+
+// Map Prisma enum values to schema string literals
+const mapTransparencyLevel = (level: TransparencyLevel): 'full' | 'partial' | 'none' => {
+  const levelMap: Record<TransparencyLevel, 'full' | 'partial' | 'none'> = {
+    [TransparencyLevel.FULL]: 'full',
+    [TransparencyLevel.PARTIAL]: 'partial',
+    [TransparencyLevel.NONE]: 'none'
+  };
+  return levelMap[level];
+};
 
 // Get paginated contacts
 router.get('/', async (req, res) => {
@@ -12,9 +52,9 @@ router.get('/', async (req, res) => {
     const { page = 1, pageSize = 10, search, type, campaignId } = req.query;
     const skip = (Number(page) - 1) * Number(pageSize);
 
-    const where = {
+    const where: Prisma.ContactWhereInput = {
       ...(req.user?.id && { userId: req.user.id }),
-      ...(type && { type: String(type) }),
+      ...(type && { type: type as ContactType }),
       ...(campaignId && { campaignId: String(campaignId) }),
       ...(search && {
         OR: [
@@ -45,7 +85,16 @@ router.get('/', async (req, res) => {
     const response: ApiResponse<PaginatedResponse<Contact>> = {
       success: true,
       data: {
-        items: contacts,
+        items: contacts.map(contact => ({
+          ...contact,
+          type: mapContactType(contact.type),
+          transparencyLevel: mapTransparencyLevel(contact.transparencyLevel),
+          lastContactedAt: contact.lastContactedAt || undefined,
+          subcategory: contact.subcategory || undefined,
+          customSubcategory: contact.customSubcategory || undefined,
+          notes: contact.notes || undefined,
+          campaignId: contact.campaignId || undefined
+        })),
         total,
         page: Number(page),
         pageSize: Number(pageSize),
@@ -92,7 +141,12 @@ router.get('/:id', async (req, res) => {
 
     res.json({
       success: true,
-      data: contact,
+      data: {
+        ...contact,
+        type: mapContactType(contact.type),
+        transparencyLevel: mapTransparencyLevel(contact.transparencyLevel),
+        lastContactedAt: contact.lastContactedAt || undefined
+      },
     });
   } catch (error) {
     res.status(500).json({
@@ -109,7 +163,9 @@ router.get('/:id', async (req, res) => {
 // Create new contact
 router.post('/', async (req, res) => {
   try {
-    const validation = validateContact(req.body);
+    // Use type assertion to ensure TypeScript knows the shape of validation
+    const validation = validateContact(req.body) as ValidationResult<any>;
+    
     if (!validation.success) {
       return res.status(400).json({
         success: false,
@@ -124,7 +180,7 @@ router.post('/', async (req, res) => {
     const contact = await prisma.contact.create({
       data: {
         ...req.body,
-        userId: req.user.id,
+        userId: req.user?.id,
       },
       include: {
         campaign: true,
@@ -133,7 +189,12 @@ router.post('/', async (req, res) => {
 
     res.status(201).json({
       success: true,
-      data: contact,
+      data: {
+        ...contact,
+        type: mapContactType(contact.type),
+        transparencyLevel: mapTransparencyLevel(contact.transparencyLevel),
+        lastContactedAt: contact.lastContactedAt || undefined
+      },
     });
   } catch (error) {
     res.status(500).json({
@@ -150,7 +211,9 @@ router.post('/', async (req, res) => {
 // Update contact
 router.put('/:id', async (req, res) => {
   try {
-    const validation = validateContact(req.body);
+    // Use type assertion to ensure TypeScript knows the shape of validation
+    const validation = validateContact(req.body) as ValidationResult<any>;
+    
     if (!validation.success) {
       return res.status(400).json({
         success: false,
@@ -172,7 +235,12 @@ router.put('/:id', async (req, res) => {
 
     res.json({
       success: true,
-      data: contact,
+      data: {
+        ...contact,
+        type: mapContactType(contact.type),
+        transparencyLevel: mapTransparencyLevel(contact.transparencyLevel),
+        lastContactedAt: contact.lastContactedAt || undefined
+      },
     });
   } catch (error) {
     res.status(500).json({
@@ -219,7 +287,7 @@ router.post('/bulk', async (req, res) => {
         await prisma.contact.deleteMany({
           where: {
             id: { in: contactIds },
-            userId: req.user.id,
+            userId: req.user?.id,
           },
         });
         break;
@@ -228,7 +296,7 @@ router.post('/bulk', async (req, res) => {
         await prisma.contact.updateMany({
           where: {
             id: { in: contactIds },
-            userId: req.user.id,
+            userId: req.user?.id,
           },
           data,
         });
@@ -238,7 +306,7 @@ router.post('/bulk', async (req, res) => {
         await prisma.contact.updateMany({
           where: {
             id: { in: contactIds },
-            userId: req.user.id,
+            userId: req.user?.id,
           },
           data: {
             campaignId: data.campaignId,

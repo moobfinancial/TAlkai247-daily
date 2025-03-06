@@ -15,9 +15,27 @@ import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
+interface Contact {
+  id: number;
+  name: string;
+  email: string;
+  phone: string;
+}
+
+interface Template {
+  id: number;
+  type: string;
+  name: string;
+  prompt: string;
+  tags: string[];
+  isSystem: boolean;
+  isHidden: boolean;
+  assignedContacts: number[];
+}
+
 export function GoalTemplateTab() {
   // State management for templates
-  const [templates, setTemplates] = useState([
+  const [templates, setTemplates] = useState<Template[]>([
     { id: 1, type: 'business', name: 'Maintain Professional Tone', prompt: 'Whisper: "Remember to keep a calm and professional tone, even if the conversation becomes challenging. Focus on finding solutions, not problems."', tags: ['communication', 'professionalism'], isSystem: true, isHidden: false, assignedContacts: [] },
     { id: 2, type: 'business', name: 'Stay Focused on Key Metrics', prompt: 'Whisper: "Guide the conversation toward the KPIs that matter—mention revenue targets, customer acquisition, and cost savings. Don\'t get sidetracked."', tags: ['metrics', 'focus'], isSystem: true, isHidden: false, assignedContacts: [] },
     { id: 3, type: 'personal', name: 'Stay Calm and Composed', prompt: 'Whisper: "Take a deep breath. Keep your tone calm and centered, especially if the conversation becomes stressful."', tags: ['stress-management', 'composure'], isSystem: true, isHidden: false, assignedContacts: [] },
@@ -25,17 +43,17 @@ export function GoalTemplateTab() {
   ]);
 
   // UI state management
-  const [selectedTemplate, setSelectedTemplate] = useState(null);
+  const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showContactsModal, setShowContactsModal] = useState(false);
-  const [editedTemplate, setEditedTemplate] = useState({ type: '', name: '', prompt: '', tags: [], isSystem: false, assignedContacts: [] });
+  const [editedTemplate, setEditedTemplate] = useState<Template | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState('all');
   const [newTag, setNewTag] = useState('');
   const [showHiddenTemplates, setShowHiddenTemplates] = useState(false);
 
   // Contact management state
-  const [contacts, setContacts] = useState([]);
+  const [contacts, setContacts] = useState<Contact[]>([]);
   const [contactSearchTerm, setContactSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [contactsPerPage] = useState(50);
@@ -43,7 +61,7 @@ export function GoalTemplateTab() {
   // Generate dummy contacts on component mount
   useEffect(() => {
     const generateContacts = () => {
-      const newContacts = [];
+      const newContacts: Contact[] = [];
       for (let i = 1; i <= 500; i++) {
         newContacts.push({
           id: i,
@@ -79,10 +97,10 @@ export function GoalTemplateTab() {
 
   // Template management functions
   const handleEditTemplate = () => {
-    if (editedTemplate.id) {
+    if (editedTemplate && editedTemplate.id) {
       if (editedTemplate.isSystem) {
         // Create a new user template based on the edited system template
-        const newUserTemplate = {
+        const newUserTemplate: Template = {
           ...editedTemplate,
           id: Date.now(),
           isSystem: false,
@@ -91,35 +109,37 @@ export function GoalTemplateTab() {
         setTemplates([newUserTemplate, ...templates]);
         setSelectedTemplate(newUserTemplate);
         toast({
-          title: "New User Template Created",
-          description: `A new user template "${newUserTemplate.name}" has been created based on the system template.`,
+          title: "Template Created",
+          description: "A new user template has been created based on the system template.",
         });
       } else {
         // Update existing user template
-        const updatedTemplates = templates.map(t => t.id === editedTemplate.id ? editedTemplate : t);
+        const updatedTemplates = templates.map(t => 
+          t.id === editedTemplate.id ? editedTemplate : t
+        );
         setTemplates(updatedTemplates);
         setSelectedTemplate(editedTemplate);
         toast({
           title: "Template Updated",
-          description: "The user template has been updated successfully.",
+          description: "The template has been updated successfully.",
         });
       }
-    } else {
-      // Saving as a new template
-      const newTemplate = { ...editedTemplate, id: Date.now(), isSystem: false };
-      setTemplates([newTemplate, ...templates]);
-      setSelectedTemplate(newTemplate);
-      toast({
-        title: "New Template Created",
-        description: "A new user template has been created successfully.",
-      });
+      setShowEditModal(false);
     }
-    setShowEditModal(false);
-    setEditedTemplate({ type: '', name: '', prompt: '', tags: [], isSystem: false, assignedContacts: [] });
   };
 
-  const handleCopyTemplate = (template) => {
-    const newTemplate = { ...template, id: Date.now(), name: `${template.name} (Copy)`, isSystem: false, assignedContacts: [] };
+  const handleSaveTemplate = () => {
+    if (editedTemplate) {
+      const updatedTemplates = templates.map(t => 
+        t.id === editedTemplate.id ? editedTemplate : t
+      );
+      setTemplates(updatedTemplates);
+      setShowEditModal(false);
+    }
+  };
+
+  const handleCopyTemplate = (template: Template) => {
+    const newTemplate: Template = { ...template, id: Date.now(), name: `${template.name} (Copy)`, isSystem: false, assignedContacts: [] };
     setTemplates([...templates, newTemplate]);
     toast({
       title: "Template Copied",
@@ -127,7 +147,7 @@ export function GoalTemplateTab() {
     });
   };
 
-  const handleDeleteTemplate = (templateId) => {
+  const handleDeleteTemplate = (templateId: number) => {
     setTemplates(templates.filter(t => t.id !== templateId));
     toast({
       title: "Template Deleted",
@@ -135,37 +155,44 @@ export function GoalTemplateTab() {
     });
   };
 
-  const handleToggleHideTemplate = (templateId) => {
-    setTemplates(templates.map(t => 
-      t.id === templateId ? { ...t, isHidden: !t.isHidden } : t
-    ));
-    toast({
-      title: "Template Visibility Updated",
-      description: `The template has been ${templates.find(t => t.id === templateId).isHidden ? 'unhidden' : 'hidden'}.`,
-    });
+  const handleToggleHideTemplate = (templateId: number) => {
+    const templateToToggle = templates.find(t => t.id === templateId);
+    if (templateToToggle) {
+      setTemplates(templates.map(t => 
+        t.id === templateId ? { ...t, isHidden: !t.isHidden } : t
+      ));
+      toast({
+        title: "Template Visibility Updated",
+        description: `The template has been ${templateToToggle.isHidden ? 'unhidden' : 'hidden'}.`,
+      });
+    }
   };
 
   // Tag management functions
   const handleAddTag = () => {
-    if (newTag && !editedTemplate.tags.includes(newTag)) {
-      setEditedTemplate({ ...editedTemplate, tags: [...editedTemplate.tags, newTag] });
+    if (newTag.trim() && editedTemplate) {
+      setEditedTemplate({
+        ...editedTemplate,
+        tags: [...editedTemplate.tags, newTag.trim()]
+      });
       setNewTag('');
     }
   };
 
-  const handleRemoveTag = (tagToRemove) => {
-    setEditedTemplate({
-      ...editedTemplate,
-      tags: editedTemplate.tags.filter(tag => tag !== tagToRemove)
-    });
+  const handleRemoveTag = (tagToRemove: string) => {
+    if (editedTemplate) {
+      setEditedTemplate({
+        ...editedTemplate,
+        tags: editedTemplate.tags.filter(tag => tag !== tagToRemove)
+      });
+    }
   };
 
-  // Contact management functions
-  const handleToggleContact = (contactId) => {
-    const updatedContacts = editedTemplate.assignedContacts.includes(contactId)
-      ? editedTemplate.assignedContacts.filter(id => id !== contactId)
-      : [...editedTemplate.assignedContacts, contactId];
-    setEditedTemplate({ ...editedTemplate, assignedContacts: updatedContacts });
+  const handleTemplateChange = (field: keyof Template, value: Template[keyof Template]) => {
+    setEditedTemplate(prev => ({
+      ...prev,
+      [field]: value
+    }) as Template);
   };
 
   return (
@@ -188,7 +215,17 @@ export function GoalTemplateTab() {
           />
         </div>
         <Button onClick={() => {
-          setEditedTemplate({ type: 'business', name: '', prompt: '', tags: [], isSystem: false, assignedContacts: [] });
+          const newTemplate: Template = {
+            id: Date.now(),
+            type: 'business', 
+            name: '', 
+            prompt: '', 
+            tags: [], 
+            isSystem: false, 
+            assignedContacts: [], 
+            isHidden: false
+          };
+          setEditedTemplate(newTemplate);
           setShowEditModal(true);
         }} className="bg-teal-600 hover:bg-teal-700 text-white">
           <Plus className="mr-2 h-4 w-4" /> Create New Goal / Template
@@ -306,7 +343,11 @@ export function GoalTemplateTab() {
               <div className="space-y-4">
                 <div>
                   <Label className="text-white">Name</Label>
-                  <Input value={selectedTemplate.name} readOnly className="bg-gray-700 text-white border-gray-600" />
+                  <Input 
+                    value={editedTemplate?.name || ''}
+                    onChange={(e) => handleTemplateChange('name', e.target.value)}
+                    placeholder="Template Name"
+                  />
                 </div>
                 <div>
                   <Label className="text-white">Type</Label>
@@ -348,6 +389,9 @@ export function GoalTemplateTab() {
                     )}
                   </div>
                 </div>
+                <Button onClick={handleSaveTemplate} className="bg-teal-600 hover:bg-teal-700 text-white">
+                  Save Template
+                </Button>
               </div>
             ) : (
               <p className="text-gray-400">Select a template from the list to view details</p>
@@ -360,15 +404,19 @@ export function GoalTemplateTab() {
       <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
         <DialogContent className="bg-gray-800 border-gray-700 text-white">
           <DialogHeader>
-            <DialogTitle>{editedTemplate.id ? (editedTemplate.isSystem ? 'Create User Template from System Template' : 'Edit User Template') : 'Create New Goal Template'}</DialogTitle>
+            <DialogTitle>{editedTemplate && editedTemplate.id ? (editedTemplate.isSystem ? 'Create User Template from System Template' : 'Edit User Template') : 'Create New Goal Template'}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div>
               <Label htmlFor="template-type">Call Type</Label>
               <RadioGroup
                 id="template-type"
-                value={editedTemplate.type}
-                onValueChange={(value) => setEditedTemplate({ ...editedTemplate, type: value })}
+                value={editedTemplate ? editedTemplate.type : 'business'}
+                onValueChange={(value) => {
+                  if (editedTemplate) {
+                    setEditedTemplate({ ...editedTemplate, type: value });
+                  }
+                }}
                 className="flex space-x-4"
               >
                 <div className="flex items-center space-x-2">
@@ -389,8 +437,12 @@ export function GoalTemplateTab() {
               <Label htmlFor="template-name">Goal Title</Label>
               <Input
                 id="template-name"
-                value={editedTemplate.name}
-                onChange={(e) => setEditedTemplate({ ...editedTemplate, name: e.target.value })}
+                value={editedTemplate ? editedTemplate.name : ''}
+                onChange={(e) => {
+                  if (editedTemplate) {
+                    setEditedTemplate({ ...editedTemplate, name: e.target.value });
+                  }
+                }}
                 className="bg-gray-700 text-white border-gray-600"
                 placeholder="Enter a concise, descriptive title for your goal"
               />
@@ -399,17 +451,21 @@ export function GoalTemplateTab() {
               <Label htmlFor="template-prompt">AI Prompt</Label>
               <Textarea
                 id="template-prompt"
-                value={editedTemplate.prompt}
-                onChange={(e) => setEditedTemplate({ ...editedTemplate, prompt: e.target.value })}
+                value={editedTemplate ? editedTemplate.prompt : ''}
+                onChange={(e) => {
+                  if (editedTemplate) {
+                    setEditedTemplate({ ...editedTemplate, prompt: e.target.value });
+                  }
+                }}
                 className="bg-gray-700 text-white border-gray-600"
                 rows={4}
-                placeholder="Enter the AI prompt here. Start with 'Whisper:' followed by the instruction in quotes. E.g., Whisper: 'Remember to maintain a professional tone throughout the call.'"
+                placeholder="Enter the prompt that will be whispered to the AI during calls"
               />
             </div>
             <div>
               <Label htmlFor="template-tags">Tags</Label>
               <div className="flex flex-wrap gap-2 mb-2">
-                {editedTemplate.tags.map((tag, index) => (
+                {editedTemplate && editedTemplate.tags.map((tag, index) => (
                   <Badge key={index} variant="secondary" className="bg-gray-600 text-white">
                     {tag}
                     <Button variant="ghost" size="sm" onClick={() => handleRemoveTag(tag)} className="ml-1 p-0">
@@ -461,7 +517,7 @@ export function GoalTemplateTab() {
           </div>
           <DialogFooter>
             <Button onClick={handleEditTemplate} className="bg-teal-600 hover:bg-teal-700 text-white">
-              {editedTemplate.id ? (editedTemplate.isSystem ? 'Create User Template' : 'Update User Template') : 'Save New Template'}
+              {editedTemplate && editedTemplate.id ? (editedTemplate.isSystem ? 'Create User Template' : 'Update User Template') : 'Save New Template'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -489,8 +545,15 @@ export function GoalTemplateTab() {
                   <div key={contact.id} className="flex items-center space-x-2">
                     <Checkbox
                       id={`contact-${contact.id}`}
-                      checked={editedTemplate.assignedContacts.includes(contact.id)}
-                      onCheckedChange={() => handleToggleContact(contact.id)}
+                      checked={editedTemplate ? editedTemplate.assignedContacts.includes(contact.id) : false}
+                      onCheckedChange={() => {
+                        if (editedTemplate) {
+                          const updatedContacts = editedTemplate.assignedContacts.includes(contact.id)
+                            ? editedTemplate.assignedContacts.filter(id => id !== contact.id)
+                            : [...editedTemplate.assignedContacts, contact.id];
+                          setEditedTemplate({ ...editedTemplate, assignedContacts: updatedContacts });
+                        }
+                      }}
                       className="border-white"
                     />
                     <Label htmlFor={`contact-${contact.id}`} className="text-sm">

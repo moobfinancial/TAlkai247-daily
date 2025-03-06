@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { X } from 'lucide-react';
 import TemplateSelection from './TemplateSelection';
 import CustomizeAssistant from './CustomizeAssistant';
@@ -46,7 +46,22 @@ const wizardSteps = [
 
 export default function AssistantWizard({ onClose, onComplete }: AssistantWizardProps) {
   const [currentStep, setCurrentStep] = useState(1);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    name: string;
+    firstMessage: string;
+    systemPrompt: string;
+    tools: Array<{
+      type: string;
+      name: string;
+      config: Record<string, string | number | boolean>;
+    }>;
+    template: any;
+    voiceProvider: string;
+    voiceId: string;
+    volume: number;
+    provider: string;
+    model: string;
+  }>({
     name: '',
     firstMessage: '',
     systemPrompt: '',
@@ -59,7 +74,16 @@ export default function AssistantWizard({ onClose, onComplete }: AssistantWizard
     model: ''
   });
 
-  const handleTemplateSelect = (template: any) => {
+  const handleTemplateSelect = (template: {
+    name: string;
+    firstMessage: string;
+    systemPrompt: string;
+    tools: Array<{
+      type: string;
+      name: string;
+      config: Record<string, string | number | boolean>;
+    }>;
+  }) => {
     setFormData({
       ...formData,
       name: template.name,
@@ -71,30 +95,45 @@ export default function AssistantWizard({ onClose, onComplete }: AssistantWizard
     setCurrentStep(2);
   };
 
-  const handleCustomization = (data: any) => {
+  const handleCustomization = (data: {
+    name: string;
+    firstMessage: string;
+    systemPrompt: string;
+    provider: string;
+    model: string;
+  }) => {
     setFormData({ ...formData, ...data });
     setCurrentStep(3);
   };
 
-  const handleVoiceSelection = (data: any) => {
+  const handleVoiceSelection = (data: {
+    voiceProvider: string;
+    voiceId: string;
+    volume: number;
+  }) => {
     setFormData({ ...formData, ...data });
     setCurrentStep(4);
   };
 
-  const handleToolsConfig = (tools: any) => {
+  const handleToolsConfig = (tools: Array<{
+    type: string;
+    name: string;
+    config: Record<string, string | number | boolean>;
+  }>) => {
     setFormData({ ...formData, tools });
     setCurrentStep(5);
   };
 
   const handleCreate = () => {
+    const { provider, model, tools, ...rest } = formData; 
     const assistant: Assistant = {
       id: Math.random().toString(36).substr(2, 9),
       modes: ['web', 'voice'],
-      provider: formData.provider,
-      model: formData.model,
-      tools: formData.tools.map(tool => ({
-        id: tool,
-        config: {}
+      provider,
+      model,
+      tools: tools.map(tool => ({
+        id: tool.type,
+        config: tool.config
       })),
       voice: {
         provider: formData.voiceProvider || null,
@@ -106,7 +145,7 @@ export default function AssistantWizard({ onClose, onComplete }: AssistantWizard
           stability: 0.75
         }
       },
-      ...formData
+      ...rest
     };
     onComplete(assistant);
   };
@@ -158,7 +197,6 @@ export default function AssistantWizard({ onClose, onComplete }: AssistantWizard
 
           {currentStep === 4 && (
             <ConfigureTools
-              formData={formData}
               onNext={handleToolsConfig}
               onBack={() => setCurrentStep(3)}
             />

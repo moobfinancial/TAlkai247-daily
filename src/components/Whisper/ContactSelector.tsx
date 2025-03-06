@@ -6,12 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Search, UserPlus } from 'lucide-react';
 import { Badge } from "@/components/ui/badge";
 
-interface Contact {
+export interface Contact {
   id: string;
   name: string;
   number: string;
   email: string;
-  type: string;
+  type: "personal" | "business";
 }
 
 interface ContactSelectorProps {

@@ -86,12 +86,7 @@ export function useWhisperState() {
 
   const handleSelectContact = useCallback((contact: Contact) => {
     set('selectedContact', contact);
-    set('showContactsSheet', false);
-    toast({
-      title: "Contact Selected",
-      description: `Selected ${contact.name} for the call.`,
-    });
-  }, [set, toast]);
+  }, []);
 
   const handleSendMessage = useCallback(() => {
     if (state.userMessage.trim()) {

@@ -1,9 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Contact, TimelineEvent } from '@/types/contact';
-import { BarChart, Calendar, Download } from 'lucide-react';
+import { Contact } from '@/types/contact'; 
+import { BarChart, Download } from 'lucide-react';
 
 interface ActivityReportProps {
   contacts: Contact[];
@@ -15,41 +15,24 @@ interface ActivityStats {
   totalInteractions: number;
   interactionsByType: Record<string, number>;
   contactsByType: Record<string, number>;
-  recentActivity: TimelineEvent[];
 }
 
 export function ActivityReport({ contacts }: ActivityReportProps) {
-  const [showDialog, setShowDialog] = React.useState(false);
-  const [timeRange, setTimeRange] = React.useState('7d');
-  const [stats, setStats] = React.useState<ActivityStats | null>(null);
+  const [showDialog, setShowDialog] = useState(false);
+  const [timeRange, setTimeRange] = useState('7d');
+  const [stats, setStats] = useState<ActivityStats | null>(null);
 
   React.useEffect(() => {
     if (showDialog) {
-      const now = new Date();
-      const rangeInDays = timeRange === '7d' ? 7 : timeRange === '30d' ? 30 : 90;
-      const startDate = new Date(now.getTime() - rangeInDays * 24 * 60 * 60 * 1000);
-
-      const recentActivity = contacts
-        .flatMap(contact => (contact.timeline || [])
-          .filter(event => new Date(event.date) >= startDate)
-        )
-        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-
       const stats: ActivityStats = {
         totalContacts: contacts.length,
-        activeContacts: contacts.filter(contact => 
-          contact.timeline?.some(event => new Date(event.date) >= startDate)
-        ).length,
-        totalInteractions: recentActivity.length,
-        interactionsByType: recentActivity.reduce((acc, event) => ({
-          ...acc,
-          [event.type]: (acc[event.type] || 0) + 1
-        }), {} as Record<string, number>),
+        activeContacts: contacts.length,
+        totalInteractions: 0,
+        interactionsByType: {},
         contactsByType: contacts.reduce((acc, contact) => ({
           ...acc,
           [contact.type]: (acc[contact.type] || 0) + 1
         }), {} as Record<string, number>),
-        recentActivity
       };
 
       setStats(stats);
@@ -75,11 +58,6 @@ ${Object.entries(stats.contactsByType)
 Interaction Types:
 ${Object.entries(stats.interactionsByType)
   .map(([type, count]) => `- ${type}: ${count}`)
-  .join('\n')}
-
-Recent Activity:
-${stats.recentActivity
-  .map(event => `${new Date(event.date).toLocaleDateString()} - ${event.type}: ${event.description}`)
   .join('\n')}`;
 
     const blob = new Blob([content], { type: 'text/plain' });
@@ -153,15 +131,6 @@ ${stats.recentActivity
                 <div className="bg-gray-700 p-4 rounded-lg">
                   <h3 className="text-lg font-semibold mb-2">Recent Activity</h3>
                   <div className="space-y-2">
-                    {stats.recentActivity.slice(0, 5).map((event, index) => (
-                      <div key={index} className="flex items-center space-x-2">
-                        <Calendar className="h-4 w-4 text-gray-400" />
-                        <span>{new Date(event.date).toLocaleDateString()}</span>
-                        <span>-</span>
-                        <span>{event.type}:</span>
-                        <span className="text-gray-400">{event.description}</span>
-                      </div>
-                    ))}
                   </div>
                 </div>
               </div>

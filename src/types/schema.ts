@@ -11,7 +11,7 @@ export interface User {
   createdAt: Date;
   updatedAt: Date;
   settings: {
-    defaultTransparencyLevel: TransparencyLevel;
+    defaultTransparencyLevel: 'none' | 'partial' | 'full';
     defaultAssistant?: string;
     recordingEnabled: boolean;
     webSearchEnabled: boolean;
@@ -37,6 +37,7 @@ export interface Assistant {
       speed: number;
       pitch: number;
       stability: number;
+      volume: number;
     };
   };
   isActive: boolean;
@@ -49,6 +50,7 @@ export interface AssistantTool {
   type: 'calendar' | 'scraping' | 'sms' | 'email';
   config: Record<string, any>;
   isEnabled: boolean;
+  name: string;
 }
 
 // Contact
@@ -58,8 +60,8 @@ export interface Contact {
   name: string;
   email: string;
   phone: string;
-  type: 'personal' | 'business';
-  transparencyLevel: TransparencyLevel;
+  type: 'business' | 'personal';
+  transparencyLevel: 'none' | 'partial' | 'full';
   subcategory?: string;
   customSubcategory?: string;
   campaignId?: string;
@@ -183,7 +185,7 @@ export interface Resource {
 }
 
 // Common Types
-export type TransparencyLevel = 'full' | 'partial' | 'none';
+export type TransparencyLevel = 'Full Disclosure' | 'Partial Disclosure' | 'No Disclosure';
 
 // API Response Types
 export interface ApiResponse<T> {
@@ -214,3 +216,12 @@ export interface QueryParams {
   search?: string;
   filters?: Record<string, any>;
 }
+
+// Assistant Where Input
+export type AssistantWhereInput = {
+  userId?: string;
+  OR?: Array<{
+    name?: { contains: string; mode: 'default' | 'insensitive' };
+    systemPrompt?: { contains: string; mode: 'default' | 'insensitive' };
+  }>; 
+};

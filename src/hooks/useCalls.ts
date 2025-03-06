@@ -1,8 +1,7 @@
 import { useState, useCallback } from 'react';
-import { callsApi } from '@/lib/api/services/calls';
-import { Call } from '@/types/schema';
 import { usePaginatedQuery } from '@/lib/api/hooks/useQuery';
 import { useMutation } from '@/lib/api/hooks/useMutation';
+import type { Call } from '@/types/schema';
 
 export function useCalls(params?: {
   page?: number;
@@ -27,11 +26,7 @@ export function useCalls(params?: {
     params,
   });
 
-  const startCallMutation = useMutation<Call, {
-    contactId: string;
-    assistantId: string;
-    goals?: any[];
-  }>({
+  const startCallMutation = useMutation<Call>({
     endpoint: '/calls/start',
     onSuccess: (call) => {
       setActiveCall(call);
@@ -39,12 +34,7 @@ export function useCalls(params?: {
     },
   });
 
-  const endCallMutation = useMutation<Call, {
-    duration: number;
-    metrics: any;
-    transcript: any[];
-    recording?: any;
-  }>({
+  const endCallMutation = useMutation<Call>({
     endpoint: `/calls/${activeCall?.id}/end`,
     onSuccess: () => {
       setActiveCall(null);
@@ -52,14 +42,14 @@ export function useCalls(params?: {
     },
   });
 
-  const updateGoalsMutation = useMutation<Call, { goals: any[] }>({
+  const updateGoalsMutation = useMutation<Call>({
     endpoint: `/calls/${activeCall?.id}/goals`,
     onSuccess: (call) => {
       setActiveCall(call);
     },
   });
 
-  const addNoteMutation = useMutation<Call, { note: string }>({
+  const addNoteMutation = useMutation<Call>({
     endpoint: `/calls/${activeCall?.id}/notes`,
     onSuccess: (call) => {
       setActiveCall(call);

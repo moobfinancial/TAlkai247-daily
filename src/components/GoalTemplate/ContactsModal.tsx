@@ -9,7 +9,6 @@ import { Search, ChevronLeft, ChevronRight } from 'lucide-react';
 interface ContactsModalProps {
   isOpen: boolean;
   onClose: () => void;
-  contacts: any[];
   currentContacts: any[];
   assignedContacts: number[];
   onToggleContact: (contactId: number) => void;
@@ -23,7 +22,6 @@ interface ContactsModalProps {
 export function ContactsModal({
   isOpen,
   onClose,
-  contacts,
   currentContacts,
   assignedContacts,
   onToggleContact,

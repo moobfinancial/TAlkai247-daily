@@ -1,4 +1,3 @@
-import React from 'react';
 import { Check } from 'lucide-react';
 
 interface Step {
@@ -42,3 +41,4 @@ export default function WizardProgress({ steps, currentStep }: WizardProgressPro
     </div>
   );
 }
+// Removing unused React import

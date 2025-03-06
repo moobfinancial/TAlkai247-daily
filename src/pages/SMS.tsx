@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Plus, Edit, Trash2 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -38,7 +38,7 @@ export default function SMS() {
   ]);
   const [showConfigModal, setShowConfigModal] = useState(false);
   const [currentConfig, setCurrentConfig] = useState<Partial<SMSConfig>>({
-    id: null,
+    id: undefined,
     phoneNumber: '',
     assistant: '',
     triggerKey: '',
@@ -54,7 +54,7 @@ export default function SMS() {
       setIsEditing(true);
     } else {
       setCurrentConfig({
-        id: null,
+        id: undefined,
         phoneNumber: '',
         assistant: '',
         triggerKey: '',
@@ -79,7 +79,7 @@ export default function SMS() {
     }
     setShowConfigModal(false);
     setCurrentConfig({
-      id: null,
+      id: undefined,
       phoneNumber: '',
       assistant: '',
       triggerKey: '',

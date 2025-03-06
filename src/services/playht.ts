@@ -1,6 +1,5 @@
 import axios from 'axios';
-
-const API_URL = 'https://api.play.ht/api/v2';
+// const API_URL = 'https://api.play.ht/api/v2';
 
 interface PlayHTVoice {
   id: string;
@@ -13,6 +12,8 @@ interface PlayHTVoice {
   description?: string;
   samples?: string[];
   provider: string; // Add the provider field to the interface
+  nationality?: string; // Add nationality property
+  traits: string[]; // Make traits non-optional
 }
 
 export const playhtApi = {
@@ -54,7 +55,9 @@ export const playhtApi = {
           preview_url,
           description: voice.description || '',
           samples,
-          provider: 'PlayHT' // Add the provider field
+          provider: 'PlayHT', // Add the provider field
+          nationality: voice.nationality || 'Unknown',
+          traits: Array.isArray(voice.traits) ? voice.traits : (voice.description ? [voice.description] : [])
         };
 
         console.log(`Mapped voice ${index + 1}:`, mappedVoice);

@@ -1,9 +1,9 @@
-import { Request, Response, NextFunction } from 'express';
+import { Response, NextFunction, Request } from 'express';
 import { Prisma } from '@prisma/client';
 
 export function errorHandler(
   error: Error,
-  req: Request,
+  _req: Request,
   res: Response,
   next: NextFunction
 ) {
@@ -40,13 +40,5 @@ export function errorHandler(
         });
     }
   }
-
-  res.status(500).json({
-    success: false,
-    error: {
-      code: 'INTERNAL_SERVER_ERROR',
-      message: 'An unexpected error occurred',
-      details: error,
-    },
-  });
+  next(error);
 }

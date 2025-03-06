@@ -52,8 +52,17 @@ export async function fetchApi<T>(
 }
 
 export const apiClient = {
-  get: <T>(endpoint: string, options?: RequestInit) => 
-    fetchApi<T>(endpoint, { ...options, method: 'GET' }),
+  get: <T>(endpoint: string, options?: { params?: Record<string, any> } & RequestInit) => {
+    const url = new URL(API_BASE_URL + endpoint);
+    if (options?.params) {
+      Object.keys(options.params).forEach(key => {
+        if (options.params && key in options.params) {
+          url.searchParams.append(key, options.params[key]);
+        }
+      });
+    }
+    return fetchApi<T>(url.toString(), options);
+  },
     
   post: <T>(endpoint: string, data: any, options?: RequestInit) =>
     fetchApi<T>(endpoint, {

@@ -1,10 +1,35 @@
 import { Router } from 'express';
-import { prisma } from '@/lib/prisma';
-import { validateCampaign } from '@/lib/validation';
-import type { Campaign } from '@/types/schema';
-import type { ApiResponse, PaginatedResponse } from '@/types/schema';
+import { prisma } from '../../lib/prisma';
+import { validateCampaign } from '../../lib/validation';
+import type { Campaign } from '../../types/schema';
+import type { ApiResponse, PaginatedResponse } from '../../types/schema';
+import { Prisma, CampaignStatus } from '@prisma/client';
+
+// Extend Express Request interface to include user property
+declare global {
+  namespace Express {
+    interface Request {
+      user?: {
+        id: string;
+        [key: string]: any;
+      };
+    }
+  }
+}
 
 const router = Router();
+
+// Map Prisma enum values to schema string literals
+const mapCampaignStatus = (status: CampaignStatus): 'draft' | 'scheduled' | 'active' | 'completed' | 'cancelled' => {
+  const statusMap: Record<CampaignStatus, 'draft' | 'scheduled' | 'active' | 'completed' | 'cancelled'> = {
+    [CampaignStatus.DRAFT]: 'draft',
+    [CampaignStatus.SCHEDULED]: 'scheduled',
+    [CampaignStatus.ACTIVE]: 'active',
+    [CampaignStatus.COMPLETED]: 'completed',
+    [CampaignStatus.CANCELLED]: 'cancelled'
+  };
+  return statusMap[status];
+};
 
 // Get paginated campaigns
 router.get('/', async (req, res) => {
@@ -12,15 +37,15 @@ router.get('/', async (req, res) => {
     const { page = 1, pageSize = 10, search, status } = req.query;
     const skip = (Number(page) - 1) * Number(pageSize);
 
-    const where = {
-      userId: req.user.id,
+    const where: Prisma.CampaignWhereInput = {
+      userId: req.user?.id,
       ...(search && {
         OR: [
-          { name: { contains: String(search), mode: 'insensitive' } },
-          { description: { contains: String(search), mode: 'insensitive' } },
+          { name: { contains: String(search), mode: 'insensitive' as Prisma.QueryMode } },
+          { description: { contains: String(search), mode: 'insensitive' as Prisma.QueryMode } },
         ],
       }),
-      ...(status && { status: String(status) }),
+      ...(status && { status: status as CampaignStatus }),
     };
 
     const [campaigns, total] = await Promise.all([
@@ -39,7 +64,38 @@ router.get('/', async (req, res) => {
     const response: ApiResponse<PaginatedResponse<Campaign>> = {
       success: true,
       data: {
-        items: campaigns,
+        items: campaigns.map(campaign => {
+          // Create a properly typed campaign object
+          const typedCampaign: Campaign = {
+            id: campaign.id,
+            userId: campaign.userId,
+            name: campaign.name,
+            description: campaign.description || undefined,
+            startDate: campaign.startDate,
+            endDate: campaign.endDate || undefined,
+            status: mapCampaignStatus(campaign.status),
+            contacts: campaign.contacts ? campaign.contacts.map(contact => contact.id) : [],
+            goals: Array.isArray(campaign.goals) ? 
+              campaign.goals.map((goal: any) => ({
+                id: String(goal?.id || ''),
+                title: String(goal?.title || ''),
+                target: Number(goal?.target || 0),
+                progress: Number(goal?.progress || 0),
+                completed: Boolean(goal?.completed)
+              })) : [],
+            metrics: {
+              totalCalls: Number((campaign.metrics as Record<string, any>)?.totalCalls || 0),
+              successfulCalls: Number((campaign.metrics as Record<string, any>)?.successfulCalls || 0),
+              failedCalls: Number((campaign.metrics as Record<string, any>)?.failedCalls || 0),
+              averageDuration: Number((campaign.metrics as Record<string, any>)?.averageDuration || 0),
+              averageSentiment: Number((campaign.metrics as Record<string, any>)?.averageSentiment || 0)
+            },
+            createdAt: campaign.createdAt,
+            updatedAt: campaign.updatedAt
+          };
+          
+          return typedCampaign;
+        }),
         total,
         page: Number(page),
         pageSize: Number(pageSize),
@@ -66,7 +122,7 @@ router.get('/:id', async (req, res) => {
     const campaign = await prisma.campaign.findUnique({
       where: {
         id: req.params.id,
-        userId: req.user.id,
+        userId: req.user?.id,
       },
       include: {
         contacts: true,
@@ -117,7 +173,8 @@ router.post('/', async (req, res) => {
     const campaign = await prisma.campaign.create({
       data: {
         ...req.body,
-        userId: req.user.id,
+        userId: req.user?.id,
+        status: 'DRAFT',
       },
       include: {
         contacts: true,
@@ -158,7 +215,7 @@ router.put('/:id', async (req, res) => {
     const campaign = await prisma.campaign.update({
       where: {
         id: req.params.id,
-        userId: req.user.id,
+        userId: req.user?.id,
       },
       data: req.body,
       include: {
@@ -188,7 +245,7 @@ router.delete('/:id', async (req, res) => {
     await prisma.campaign.delete({
       where: {
         id: req.params.id,
-        userId: req.user.id,
+        userId: req.user?.id,
       },
     });
 
@@ -213,10 +270,31 @@ router.post('/:id/contacts', async (req, res) => {
   try {
     const { contactIds } = req.body;
 
-    const campaign = await prisma.campaign.update({
+    // First, verify the campaign belongs to the user
+    const campaign = await prisma.campaign.findUnique({
       where: {
         id: req.params.id,
-        userId: req.user.id,
+        userId: req.user?.id,
+      },
+      include: {
+        contacts: true,
+      },
+    });
+
+    if (!campaign) {
+      return res.status(404).json({
+        success: false,
+        error: {
+          code: 'NOT_FOUND',
+          message: 'Campaign not found',
+        },
+      });
+    }
+
+    const updatedCampaign = await prisma.campaign.update({
+      where: {
+        id: req.params.id,
+        userId: req.user?.id,
       },
       data: {
         contacts: {
@@ -230,7 +308,7 @@ router.post('/:id/contacts', async (req, res) => {
 
     res.json({
       success: true,
-      data: campaign,
+      data: updatedCampaign,
     });
   } catch (error) {
     res.status(500).json({
@@ -249,10 +327,31 @@ router.delete('/:id/contacts', async (req, res) => {
   try {
     const { contactIds } = req.body;
 
-    const campaign = await prisma.campaign.update({
+    // First, verify the campaign belongs to the user
+    const campaign = await prisma.campaign.findUnique({
       where: {
         id: req.params.id,
-        userId: req.user.id,
+        userId: req.user?.id,
+      },
+      include: {
+        contacts: true,
+      },
+    });
+
+    if (!campaign) {
+      return res.status(404).json({
+        success: false,
+        error: {
+          code: 'NOT_FOUND',
+          message: 'Campaign not found',
+        },
+      });
+    }
+
+    const updatedCampaign = await prisma.campaign.update({
+      where: {
+        id: req.params.id,
+        userId: req.user?.id,
       },
       data: {
         contacts: {
@@ -266,7 +365,7 @@ router.delete('/:id/contacts', async (req, res) => {
 
     res.json({
       success: true,
-      data: campaign,
+      data: updatedCampaign,
     });
   } catch (error) {
     res.status(500).json({

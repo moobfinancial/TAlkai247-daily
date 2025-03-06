@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { prisma } from '../lib/prisma';
 import { authenticate } from '../middleware/auth';
 import { z } from 'zod';
+import { Prisma } from '@prisma/client';
 
 const router = Router();
 
@@ -104,10 +105,13 @@ router.post('/', authenticate, async (req, res) => {
     const assistant = await prisma.assistant.create({
       data: {
         ...validation.data,
-        userId: req.user.id,
+        user: {
+          connect: { id: req.user.id },
+        },
         tools: validation.data.tools || [],
-        modes: ['voice', 'chat']
-      }
+        modes: ["voice", "chat"],
+        voice: validation.data.voice ? validation.data.voice : Prisma.JsonNull,
+      },
     });
 
     res.status(201).json({

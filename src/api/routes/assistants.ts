@@ -1,8 +1,21 @@
 import { Router } from 'express';
-import { prisma } from '@/lib/prisma';
-import { validateAssistant } from '@/lib/validation';
-import type { Assistant } from '@/types/schema';
-import type { ApiResponse, PaginatedResponse } from '@/types/schema';
+import { prisma } from '../../lib/prisma';
+import { validateAssistant } from '../../lib/validation';
+import type { Assistant, AssistantTool } from '../../types/schema';
+import type { ApiResponse, PaginatedResponse } from '../../types/schema';
+import type { AssistantWhereInput } from '../../types/schema';
+
+// Extend Express Request interface to include user property
+declare global {
+  namespace Express {
+    interface Request {
+      user?: {
+        id: string;
+        [key: string]: any;
+      };
+    }
+  }
+}
 
 const router = Router();
 
@@ -12,12 +25,12 @@ router.get('/', async (req, res) => {
     const { page = 1, pageSize = 10, search, userId } = req.query;
     const skip = (Number(page) - 1) * Number(pageSize);
 
-    const where = {
+    const where: AssistantWhereInput = {
       ...(userId && { userId: String(userId) }),
       ...(search && {
         OR: [
-          { name: { contains: String(search), mode: 'insensitive' } },
-          { systemPrompt: { contains: String(search), mode: 'insensitive' } },
+          { name: { contains: String(search), mode: 'insensitive' as 'default' | 'insensitive' } },
+          { systemPrompt: { contains: String(search), mode: 'insensitive' as 'default' | 'insensitive' } },
         ],
       }),
     };
@@ -35,7 +48,20 @@ router.get('/', async (req, res) => {
     const response: ApiResponse<PaginatedResponse<Assistant>> = {
       success: true,
       data: {
-        items: assistants,
+        items: assistants.map(assistant => ({
+          ...assistant,
+          modes: assistant.modes as ('web' | 'voice')[],
+          tools: (assistant.tools as any) || [] as AssistantTool[],
+          voice: (assistant.voice as any) || {
+            provider: '',
+            voiceId: '',
+            settings: {
+              speed: 1,
+              pitch: 1,
+              stability: 0.75
+            }
+          }
+        })),
         total,
         page: Number(page),
         pageSize: Number(pageSize),
@@ -105,7 +131,10 @@ router.post('/', async (req, res) => {
     }
 
     const assistant = await prisma.assistant.create({
-      data: req.body,
+      data: {
+        ...req.body,
+        modes: req.body.modes as ('web' | 'voice')[],
+      },
     });
 
     res.status(201).json({
@@ -141,7 +170,10 @@ router.put('/:id', async (req, res) => {
 
     const assistant = await prisma.assistant.update({
       where: { id: req.params.id },
-      data: req.body,
+      data: {
+        ...req.body,
+        modes: req.body.modes as ('web' | 'voice')[],
+      },
     });
 
     res.json({

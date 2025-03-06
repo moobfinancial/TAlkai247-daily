@@ -1,1 +1,3 @@
-export { AssistantsTab } from './AssistantsTab';
+import AssistantsTab from './AssistantsTab';
+
+export { AssistantsTab };

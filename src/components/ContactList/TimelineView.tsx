@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { TimelineEvent } from '@/types/contact';
-import { Calendar, Phone, Mail, Users, FileText, Target } from 'lucide-react';
+import { Phone, Mail, Users, FileText, Target } from 'lucide-react';
 
 interface TimelineViewProps {
   open: boolean;
@@ -19,11 +19,12 @@ export function TimelineView({ open, onClose, events, onAddEvent, contactId }: T
   const [showAddEvent, setShowAddEvent] = React.useState(false);
   const [newEvent, setNewEvent] = React.useState<Partial<TimelineEvent>>({
     type: 'Note',
-    date: new Date().toISOString().split('T')[0],
-    description: ''
+    title: '',
+    description: '',
+    date: new Date(),
   });
 
-  const getEventIcon = (type: TimelineEvent['type']) => {
+  const getIcon = (type: string) => {
     switch (type) {
       case 'Call':
         return <Phone className="h-4 w-4" />;
@@ -33,25 +34,41 @@ export function TimelineView({ open, onClose, events, onAddEvent, contactId }: T
         return <Users className="h-4 w-4" />;
       case 'Note':
         return <FileText className="h-4 w-4" />;
-      case 'Goal':
+      case 'Task':
         return <Target className="h-4 w-4" />;
       default:
-        return <Calendar className="h-4 w-4" />;
+        return <FileText className="h-4 w-4" />;
     }
   };
 
   const handleAddEvent = () => {
-    onAddEvent({
+    if (!newEvent.title || !newEvent.type) return;
+    
+    const event: TimelineEvent = {
       id: Date.now().toString(),
       contactId,
-      ...newEvent as TimelineEvent
-    });
-    setShowAddEvent(false);
+      type: newEvent.type as 'Call' | 'Email' | 'Meeting' | 'Note' | 'Task',
+      title: newEvent.title,
+      description: newEvent.description || '',
+      date: newEvent.date || new Date(),
+      completed: newEvent.completed || false,
+      dueDate: newEvent.dueDate
+    };
+    
+    onAddEvent(event);
     setNewEvent({
       type: 'Note',
-      date: new Date().toISOString().split('T')[0],
-      description: ''
+      title: '',
+      description: '',
+      date: new Date(),
     });
+    setShowAddEvent(false);
+  };
+
+  const formatDate = (date: Date) => {
+    return date instanceof Date 
+      ? date.toISOString().split('T')[0]
+      : new Date().toISOString().split('T')[0];
   };
 
   return (
@@ -87,15 +104,19 @@ export function TimelineView({ open, onClose, events, onAddEvent, contactId }: T
                       <SelectItem value="Email">Email</SelectItem>
                       <SelectItem value="Meeting">Meeting</SelectItem>
                       <SelectItem value="Note">Note</SelectItem>
-                      <SelectItem value="Goal">Goal</SelectItem>
+                      <SelectItem value="Task">Task</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 
                 <Input
                   type="date"
-                  value={newEvent.date}
-                  onChange={(e) => setNewEvent({ ...newEvent, date: e.target.value })}
+                  placeholder="Date"
+                  value={formatDate(newEvent.date as Date)}
+                  onChange={(e) => setNewEvent({ 
+                    ...newEvent, 
+                    date: new Date(e.target.value) 
+                  })}
                 />
                 
                 <Textarea
@@ -131,7 +152,7 @@ export function TimelineView({ open, onClose, events, onAddEvent, contactId }: T
                   className="flex items-start space-x-4 p-4 bg-gray-700 rounded-lg"
                 >
                   <div className="flex-shrink-0 w-8 h-8 bg-gray-600 rounded-full flex items-center justify-center">
-                    {getEventIcon(event.type)}
+                    {getIcon(event.type)}
                   </div>
                   <div className="flex-grow">
                     <div className="flex justify-between items-start">

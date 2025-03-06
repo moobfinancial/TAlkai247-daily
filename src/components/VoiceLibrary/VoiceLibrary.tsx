@@ -1,12 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Plus } from 'lucide-react';
 import { VoiceCard } from './VoiceCard';
 import { VoiceFilters } from './VoiceFilters';
-import { AddVoiceCloneModal } from './AddVoiceCloneModal';
 import { VoiceDetailsModal } from './VoiceDetailsModal';
+import { AddVoiceCloneModal } from './AddVoiceCloneModal';
+import { elevenlabsService } from '@/services/elevenlabs';
 import type { Voice, Provider } from './types';
-import { elevenLabsService } from '@/services/elevenlabs';
 
 const allLanguages = [
   "English", "Spanish (Spain)", "Spanish (Mexico)", "French (France)", "French (Canada)",
@@ -15,11 +15,11 @@ const allLanguages = [
 ];
 
 const allProviders: Provider[] = [
-  { name: "Talkai247", status: "Included", languages: ["English"] },
-  { name: "11Labs", status: "Premium", languages: ["English"] },
-  { name: "Playht", status: "Premium", languages: ["English"] },
-  { name: "Deepgram", status: "Included", languages: ["English"] },
-  { name: "Azure", status: "Included", languages: allLanguages },
+  { name: "talkai247", status: "Included", description: "Default voice provider" },
+  { name: "elevenlabs", status: "Premium", description: "High-quality voice synthesis" },
+  { name: "playht", status: "Premium", description: "Realistic voice cloning" },
+  { name: "deepgram", status: "Included", description: "Fast and accurate voice models" },
+  { name: "custom", status: "Included", description: "Your custom voice clones" }
 ];
 
 const initialVoices: Voice[] = [];
@@ -39,23 +39,26 @@ export function VoiceLibrary() {
       try {
         setIsLoading(true);
         console.log('Starting to fetch Eleven Labs voices...');
-        console.log('API Key available:', !!elevenLabsService.apiKey);
-        const elevenLabsVoices = await elevenLabsService.getAllVoices();
-        console.log('Received voices:', elevenLabsVoices);
+        console.log('API Key available:', !!elevenlabsService.apiKey);
+        // Use public methods instead of private ones
+        const elevenlabsVoices: any[] = await elevenlabsService.getVoices();
+        console.log('Received voices:', elevenlabsVoices);
         
-        if (!elevenLabsVoices || elevenLabsVoices.length === 0) {
+        if (!elevenlabsVoices || elevenlabsVoices.length === 0) {
           console.warn('No voices received from ElevenLabs API');
           return;
         }
 
-        const formattedVoices: Voice[] = elevenLabsVoices.map((voice) => ({
-          id: voice.voice_id,
+        // Create formatted voices directly with proper typing
+        const formattedVoices: Voice[] = elevenlabsVoices.map((voice: any) => ({
+          id: voice.voice_id || `eleven-${Date.now()}`,
           name: voice.name,
-          gender: voice.labels?.gender || "Not specified",
-          nationality: voice.labels?.accent || "Not specified",
-          language: "English",
-          provider: "11Labs",
-          traits: [],
+          gender: voice.labels?.gender || 'Unknown',
+          nationality: voice.labels?.nationality || 'Unknown',
+          language: voice.labels?.language || 'en',
+          provider: 'elevenlabs',
+          traits: voice.labels ? Object.values(voice.labels).filter(Boolean) as string[] : [],
+          preview_url: voice.preview_url || '',
           eleven_labs_id: voice.voice_id
         }));
 
@@ -73,7 +76,7 @@ export function VoiceLibrary() {
 
   const filteredVoices = voices.filter(voice => {
     const matchesSearch = voice.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         voice.nationality.toLowerCase().includes(searchQuery.toLowerCase());
+                         (voice.nationality ? voice.nationality.toLowerCase().includes(searchQuery.toLowerCase()) : false);
     const matchesLanguage = selectedLanguage === "All Languages" || voice.language === selectedLanguage;
     const matchesProvider = selectedProvider === "All Providers" || voice.provider === selectedProvider;
     
@@ -96,13 +99,17 @@ export function VoiceLibrary() {
 
       <VoiceFilters
         searchQuery={searchQuery}
-        setSearchQuery={setSearchQuery}
+        onSearchChange={setSearchQuery}
         selectedLanguage={selectedLanguage}
-        setSelectedLanguage={setSelectedLanguage}
+        onLanguageChange={setSelectedLanguage}
         selectedProvider={selectedProvider}
-        setSelectedProvider={setSelectedProvider}
+        onProviderChange={setSelectedProvider}
         languages={allLanguages}
         providers={allProviders}
+        onFilterChange={(language, provider) => {
+          setSelectedLanguage(language);
+          setSelectedProvider(provider);
+        }}
       />
 
       {isLoading ? (
@@ -125,12 +132,29 @@ export function VoiceLibrary() {
       <AddVoiceCloneModal
         isOpen={showAddVoiceModal}
         onClose={() => setShowAddVoiceModal(false)}
+        onAddVoice={(voice) => {
+          // Ensure the voice has all required properties of the Voice type
+          const completeVoice: Voice = {
+            id: voice.id || `custom-${Date.now()}`,
+            name: voice.name,
+            provider: voice.provider || 'custom',
+            audioUrl: voice.audioUrl,
+            description: voice.description,
+            gender: 'Unknown',
+            language: 'English',
+            traits: [],
+            nationality: 'Unknown'
+          };
+          setVoices([...voices, completeVoice]);
+          setShowAddVoiceModal(false);
+        }}
       />
 
       <VoiceDetailsModal
         isOpen={showVoiceDetailsModal}
         onClose={() => setShowVoiceDetailsModal(false)}
         voice={selectedVoice}
+        providers={allProviders}
       />
     </div>
   );

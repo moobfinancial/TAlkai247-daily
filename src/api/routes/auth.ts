@@ -1,9 +1,22 @@
 import { Router } from 'express';
-import { prisma } from '@/lib/prisma';
-import { generateToken } from '@/lib/auth/jwt';
-import { authenticate } from '@/lib/auth/middleware';
-import { validateUser } from '@/lib/validation';
-import bcrypt from 'bcryptjs';
+import { prisma } from '../../lib/prisma';
+import { generateToken } from '../../lib/auth/jwt';
+import { authenticate } from '../../lib/auth/middleware';
+import { validateUser } from '../../lib/validation';
+import * as bcrypt from 'bcryptjs';
+import { User } from '@prisma/client';
+
+// Extend Express Request interface to include user property
+declare global {
+  namespace Express {
+    interface Request {
+      user?: {
+        id: string;
+        [key: string]: any;
+      };
+    }
+  }
+}
 
 const router = Router();
 
@@ -26,7 +39,7 @@ router.post('/login', async (req, res) => {
       });
     }
 
-    const token = generateToken(user);
+    const token = generateToken(user as User);
 
     res.json({
       success: true,
@@ -37,6 +50,9 @@ router.post('/login', async (req, res) => {
           email: user.email,
           name: user.name,
           role: user.role,
+          company: user.company,
+          phoneNumber: user.phoneNumber,
+          settings: user.settings,
         },
       },
     });
@@ -45,7 +61,7 @@ router.post('/login', async (req, res) => {
       success: false,
       error: {
         code: 'INTERNAL_SERVER_ERROR',
-        message: 'Login failed',
+        message: 'Failed to login',
         details: error,
       },
     });
@@ -56,13 +72,13 @@ router.post('/login', async (req, res) => {
 router.post('/register', async (req, res) => {
   try {
     const validation = validateUser(req.body);
-    if (!validation.success) {
+    if (typeof validation === 'boolean' ? !validation : !validation.success) {
       return res.status(400).json({
         success: false,
         error: {
           code: 'VALIDATION_ERROR',
           message: 'Invalid user data',
-          details: validation.errors,
+          details: typeof validation === 'boolean' ? null : validation.errors,
         },
       });
     }
@@ -99,7 +115,7 @@ router.post('/register', async (req, res) => {
       },
     });
 
-    const token = generateToken(user);
+    const token = generateToken(user as User);
 
     res.status(201).json({
       success: true,
@@ -128,6 +144,16 @@ router.post('/register', async (req, res) => {
 // Get current user
 router.get('/me', authenticate, async (req, res) => {
   try {
+    if (!req.user?.id) {
+      return res.status(401).json({
+        success: false,
+        error: {
+          code: 'UNAUTHORIZED',
+          message: 'User not authenticated',
+        },
+      });
+    }
+
     const user = await prisma.user.findUnique({
       where: { id: req.user.id },
       select: {
@@ -135,8 +161,11 @@ router.get('/me', authenticate, async (req, res) => {
         email: true,
         name: true,
         role: true,
-        settings: true,
+        company: true,
+        phoneNumber: true,
         createdAt: true,
+        updatedAt: true,
+        settings: true,
       },
     });
 
@@ -156,9 +185,106 @@ router.get('/me', authenticate, async (req, res) => {
   }
 });
 
+// Update user settings
+router.put('/settings', authenticate, async (req, res) => {
+  try {
+    if (!req.user?.id) {
+      return res.status(401).json({
+        success: false,
+        error: {
+          code: 'UNAUTHORIZED',
+          message: 'User not authenticated',
+        },
+      });
+    }
+
+    const user = await prisma.user.update({
+      where: { id: req.user.id },
+      data: {
+        settings: req.body,
+      },
+      select: {
+        settings: true,
+      },
+    });
+
+    res.json({
+      success: true,
+      data: user,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: {
+        code: 'INTERNAL_SERVER_ERROR',
+        message: 'Failed to update user settings',
+        details: error,
+      },
+    });
+  }
+});
+
+// Update user profile
+router.put('/profile', authenticate, async (req, res) => {
+  try {
+    if (!req.user?.id) {
+      return res.status(401).json({
+        success: false,
+        error: {
+          code: 'UNAUTHORIZED',
+          message: 'User not authenticated',
+        },
+      });
+    }
+
+    const user = await prisma.user.update({
+      where: { id: req.user.id },
+      data: {
+        name: req.body.name,
+        company: req.body.company,
+        phoneNumber: req.body.phoneNumber,
+      },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        company: true,
+        phoneNumber: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+
+    res.json({
+      success: true,
+      data: user,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: {
+        code: 'INTERNAL_SERVER_ERROR',
+        message: 'Failed to update user profile',
+        details: error,
+      },
+    });
+  }
+});
+
 // Change password
 router.post('/change-password', authenticate, async (req, res) => {
   try {
+    if (!req.user?.id) {
+      return res.status(401).json({
+        success: false,
+        error: {
+          code: 'UNAUTHORIZED',
+          message: 'User not authenticated',
+        },
+      });
+    }
+
     const { currentPassword, newPassword } = req.body;
 
     const user = await prisma.user.findUnique({
@@ -179,7 +305,9 @@ router.post('/change-password', authenticate, async (req, res) => {
 
     await prisma.user.update({
       where: { id: req.user.id },
-      data: { password: hashedPassword },
+      data: {
+        password: hashedPassword,
+      },
     });
 
     res.json({
@@ -199,7 +327,7 @@ router.post('/change-password', authenticate, async (req, res) => {
 });
 
 // Logout (optional, since JWT is stateless)
-router.post('/logout', authenticate, (req, res) => {
+router.post('/logout', authenticate, (_req, res) => {
   // Client should discard the token
   res.json({
     success: true,

@@ -1,8 +1,7 @@
 import { useState, useCallback } from 'react';
-import { contactsApi } from '@/lib/api/services/contacts';
-import { Contact } from '@/types/schema';
 import { usePaginatedQuery } from '@/lib/api/hooks/useQuery';
 import { useMutation } from '@/lib/api/hooks/useMutation';
+import { Contact } from '@/types/schema';
 
 export function useContacts(params?: {
   page?: number;
@@ -27,18 +26,18 @@ export function useContacts(params?: {
     params,
   });
 
-  const createMutation = useMutation<Contact, Omit<Contact, 'id' | 'userId' | 'createdAt' | 'updatedAt'>>({
+  const createMutation = useMutation<Contact>({
     endpoint: '/contacts',
     onSuccess: () => refetch(),
   });
 
-  const updateMutation = useMutation<Contact, Partial<Contact>>({
+  const updateMutation = useMutation<Contact>({
     endpoint: `/contacts/${selectedContacts[0]}`,
     method: 'PUT',
     onSuccess: () => refetch(),
   });
 
-  const deleteMutation = useMutation<void, void>({
+  const deleteMutation = useMutation<void>({
     endpoint: `/contacts/${selectedContacts[0]}`,
     method: 'DELETE',
     onSuccess: () => {
@@ -47,7 +46,7 @@ export function useContacts(params?: {
     },
   });
 
-  const bulkDeleteMutation = useMutation<void, { contactIds: string[] }>({
+  const bulkDeleteMutation = useMutation<void>({
     endpoint: '/contacts/bulk',
     onSuccess: () => {
       refetch();

@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { CurrentPlan } from '@/components/Billing/CurrentPlan';
 import { AvailablePlans } from '@/components/Billing/AvailablePlans';
 import { PaymentMethod } from '@/components/Billing/PaymentMethod';
 import { BillingHistory } from '@/components/Billing/BillingHistory';
 import { UpgradeDialog } from '@/components/Billing/UpgradeDialog';
-import { BillingCycle, Plan, plans } from '@/components/Billing/plans';
+import { BillingCycle, Plan } from '@/components/Billing/plans';
 
 export default function Billing() {
   const [currentPlan, setCurrentPlan] = useState<Plan>('Free');

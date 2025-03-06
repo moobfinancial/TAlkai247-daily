@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Eye, Edit, Plus } from 'lucide-react';
+import { useState } from 'react';
+import { Eye, Plus } from 'lucide-react';
 
 interface Template {
   id: string;
@@ -8,7 +8,11 @@ interface Template {
   type: 'system' | 'user';
   systemPrompt: string;
   firstMessage: string;
-  tools: string[];
+  tools: Array<{
+    type: string;
+    name: string;
+    config: Record<string, string | number | boolean>;
+  }>;
 }
 
 interface TemplateSelectionProps {
@@ -24,7 +28,16 @@ const systemTemplates: Template[] = [
     type: 'system',
     systemPrompt: 'You are a personal assistant dedicated to helping with daily tasks, scheduling, and organization.',
     firstMessage: 'Hello! I\'m your personal assistant. How can I help you organize your day?',
-    tools: ['Calendar Integration']
+    tools: [
+      {
+        type: 'calendar',
+        name: 'Calendar Integration',
+        config: {
+          timezone: 'America/New_York',
+          reminders: true,
+        },
+      },
+    ],
   },
   {
     id: 'fitness-coach',
@@ -33,7 +46,16 @@ const systemTemplates: Template[] = [
     type: 'system',
     systemPrompt: 'You are a fitness coach helping users achieve their health and wellness goals.',
     firstMessage: 'Welcome! Let\'s work together on your fitness journey. What are your goals?',
-    tools: ['Calendar Integration']
+    tools: [
+      {
+        type: 'calendar',
+        name: 'Calendar Integration',
+        config: {
+          timezone: 'America/New_York',
+          reminders: true,
+        },
+      },
+    ],
   },
   {
     id: 'language-tutor',
@@ -42,7 +64,7 @@ const systemTemplates: Template[] = [
     type: 'system',
     systemPrompt: 'You are a language tutor specializing in multiple languages.',
     firstMessage: 'Hello! Ready to practice your language skills?',
-    tools: []
+    tools: [],
   },
   {
     id: 'travel-planner',
@@ -51,11 +73,28 @@ const systemTemplates: Template[] = [
     type: 'system',
     systemPrompt: 'You are a travel planner with extensive knowledge of destinations worldwide.',
     firstMessage: 'Ready to plan your next adventure?',
-    tools: ['Calendar Integration', 'Scraping Tool']
-  }
+    tools: [
+      {
+        type: 'calendar',
+        name: 'Calendar Integration',
+        config: {
+          timezone: 'America/New_York',
+          reminders: true,
+        },
+      },
+      {
+        type: 'scraping',
+        name: 'Scraping Tool',
+        config: {
+          url: 'https://example.com',
+          interval: 60,
+        },
+      },
+    ],
+  },
 ];
 
-export default function TemplateSelection({ onNext, onClose }: TemplateSelectionProps) {
+export default function TemplateSelection({ onNext }: TemplateSelectionProps) {
   const [selectedCategory, setSelectedCategory] = useState<'blank' | 'personal' | 'business' | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [previewTemplate, setPreviewTemplate] = useState<Template | null>(null);
@@ -66,44 +105,68 @@ export default function TemplateSelection({ onNext, onClose }: TemplateSelection
       label: 'Blank Template',
       description: 'Start from scratch with a clean slate',
       image: 'https://images.unsplash.com/photo-1586075010923-2dd4570fb338?q=80&w=500&auto=format&fit=crop',
-      icon: <Plus className="h-12 w-12 text-teal-500" />
+      icon: <Plus className="h-12 w-12 text-teal-500" />,
     },
     {
       id: 'personal',
       label: 'Personal Templates',
       description: 'Templates for individual use and personal assistance',
       image: 'https://images.unsplash.com/photo-1499750310107-5fef28a66643?q=80&w=500&auto=format&fit=crop',
-      icon: <svg className="h-12 w-12 text-teal-500" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-      </svg>
+      icon: (
+        <svg
+          className="h-12 w-12 text-teal-500"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+          />
+        </svg>
+      ),
     },
     {
       id: 'business',
       label: 'Business Templates',
       description: 'Professional templates for business and enterprise',
       image: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=500&auto=format&fit=crop',
-      icon: <svg className="h-12 w-12 text-teal-500" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-      </svg>
-    }
+      icon: (
+        <svg
+          className="h-12 w-12 text-teal-500"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+          />
+        </svg>
+      ),
+    },
   ];
 
-  const filteredTemplates = systemTemplates.filter(template => {
+  const filteredTemplates = systemTemplates.filter((template) => {
     if (!searchQuery) return true;
     return (
       template.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      template.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()))
+      template.tags.some((tag) => tag.toLowerCase().includes(searchQuery.toLowerCase()))
     );
   });
 
   return (
     <div className="space-y-6">
       <h2 className="text-xl font-semibold text-[#14b8a6]">Step 1: Choose a Template</h2>
-      
+
       {/* Template Categories */}
       <div className="grid grid-cols-3 gap-6">
         {templateCategories.map((category) => (
-          <div 
+          <div
             key={category.id}
             className={`group relative overflow-hidden rounded-lg cursor-pointer transition-all ${
               selectedCategory === category.id ? 'ring-2 ring-[#14b8a6]' : ''
@@ -112,8 +175,8 @@ export default function TemplateSelection({ onNext, onClose }: TemplateSelection
           >
             {/* Background Image with Overlay */}
             <div className="absolute inset-0">
-              <img 
-                src={category.image} 
+              <img
+                src={category.image}
                 alt={category.label}
                 className="w-full h-full object-cover"
               />
@@ -149,13 +212,15 @@ export default function TemplateSelection({ onNext, onClose }: TemplateSelection
               >
                 <div className="flex justify-between items-start mb-4">
                   <h3 className="text-lg font-semibold text-white">{template.name}</h3>
-                  <span className={`px-2 py-1 text-xs rounded ${
-                    template.type === 'system' ? 'bg-blue-500' : 'bg-green-500'
-                  } text-white`}>
+                  <span
+                    className={`px-2 py-1 text-xs rounded ${
+                      template.type === 'system' ? 'bg-blue-500' : 'bg-green-500'
+                    } text-white`}
+                  >
                     {template.type === 'system' ? 'System' : 'User'}
                   </span>
                 </div>
-                
+
                 <div className="flex flex-wrap gap-2 mb-4">
                   {template.tags.map((tag) => (
                     <span
@@ -175,9 +240,9 @@ export default function TemplateSelection({ onNext, onClose }: TemplateSelection
                     <Eye size={16} />
                     <span>Preview</span>
                   </button>
-                  
+
                   <button
-                    className="px-4 py-2 bg-[#14b8a6] text-white rounded hover:bg-[#0d9488] transition-colors"
+                    className="px-4 py-2 bg-[#14b8a6] text-white rounded hover:bg-[#0d9488]"
                     onClick={() => onNext(template)}
                   >
                     Use Template
@@ -202,28 +267,26 @@ export default function TemplateSelection({ onNext, onClose }: TemplateSelection
                 ×
               </button>
             </div>
-            
             <div className="space-y-4 mb-6">
               <div>
                 <h3 className="text-[#14b8a6] font-medium mb-2">System Prompt</h3>
                 <p className="text-gray-300">{previewTemplate.systemPrompt}</p>
               </div>
-              
               <div>
                 <h3 className="text-[#14b8a6] font-medium mb-2">First Message</h3>
                 <p className="text-gray-300">{previewTemplate.firstMessage}</p>
               </div>
-              
               <div>
                 <h3 className="text-[#14b8a6] font-medium mb-2">Tools</h3>
                 <ul className="list-disc list-inside text-gray-300">
                   {previewTemplate.tools.map((tool) => (
-                    <li key={tool}>{tool}</li>
+                    <li key={tool.name}>
+                      {tool.name} ({tool.type})
+                    </li>
                   ))}
                 </ul>
               </div>
             </div>
-            
             <div className="flex justify-end space-x-4">
               <button
                 className="px-4 py-2 text-gray-400 hover:text-white"
@@ -249,15 +312,17 @@ export default function TemplateSelection({ onNext, onClose }: TemplateSelection
       {selectedCategory === 'blank' && (
         <div className="flex justify-end mt-8">
           <button
-            onClick={() => onNext({
-              id: 'blank',
-              name: 'Blank Template',
-              tags: [],
-              type: 'system',
-              systemPrompt: '',
-              firstMessage: '',
-              tools: []
-            })}
+            onClick={() =>
+              onNext({
+                id: 'blank',
+                name: 'Blank Template',
+                tags: [],
+                type: 'system',
+                systemPrompt: '',
+                firstMessage: '',
+                tools: [],
+              })
+            }
             className="px-6 py-2 bg-[#14b8a6] text-white rounded hover:bg-[#0d9488]"
           >
             Next

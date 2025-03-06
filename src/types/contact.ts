@@ -1,5 +1,5 @@
-export type TransparencyLevel = 'Full Disclosure' | 'Partial Disclosure' | 'No Disclosure';
-export type ContactType = 'Personal' | 'Campaign';
+export type TransparencyLevel = 'none' | 'partial' | 'full';
+export type ContactType = 'personal' | 'business';
 export type Subcategory = 'Stranger' | 'Business' | 'Family' | 'Friends' | 'Other';
 
 export interface Goal {
@@ -14,14 +14,30 @@ export interface Goal {
 
 export interface Contact {
   id: string;
+  userId: string;
   name: string;
   email: string;
   phone: string;
   type: ContactType;
   goals?: Goal[];
   transparencyLevel: TransparencyLevel;
-  subcategory?: Subcategory;
+  subcategory?: string;
   customSubcategory?: string;
-  campaignName?: string;
-  tags?: string[];
+  campaignId?: string;
+  tags: string[];
+  notes?: string;
+  createdAt: Date;
+  updatedAt: Date;
+  lastContactedAt?: Date;
+}
+
+export interface TimelineEvent {
+  id: string;
+  contactId: string;
+  type: 'Call' | 'Email' | 'Meeting' | 'Note' | 'Task';
+  title: string;
+  description: string;
+  date: Date;
+  completed?: boolean;
+  dueDate?: Date;
 }

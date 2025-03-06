@@ -65,7 +65,7 @@ export function ExportImport({ contacts, onImport }: ExportImportProps) {
         
         const importedContacts = rows.slice(1).map(row => {
           const values = row.split(',');
-          const contact: Partial<Contact> = {};
+          const contact: Record<string, any> = {};
           
           headers.forEach((header, index) => {
             if (header === 'tags') {

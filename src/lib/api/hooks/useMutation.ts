@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { apiClient } from '../client';
 
-interface MutationOptions<TData, TVariables> {
+interface MutationOptions<TData> {
   endpoint: string;
   method?: 'POST' | 'PUT' | 'DELETE';
   onSuccess?: (data: TData) => void;
@@ -9,21 +9,21 @@ interface MutationOptions<TData, TVariables> {
   onSettled?: () => void;
 }
 
-interface MutationResult<TData, TVariables> {
-  mutate: (variables: TVariables) => Promise<TData>;
+interface MutationResult<TData> {
+  mutate: (variables: unknown) => Promise<TData>;
   data: TData | null;
   error: Error | null;
   loading: boolean;
   reset: () => void;
 }
 
-export function useMutation<TData = unknown, TVariables = unknown>({
+export function useMutation<TData = unknown>({
   endpoint,
   method = 'POST',
   onSuccess,
   onError,
   onSettled,
-}: MutationOptions<TData, TVariables>): MutationResult<TData, TVariables> {
+}: MutationOptions<TData>): MutationResult<TData> {
   const [data, setData] = useState<TData | null>(null);
   const [error, setError] = useState<Error | null>(null);
   const [loading, setLoading] = useState(false);
@@ -34,7 +34,7 @@ export function useMutation<TData = unknown, TVariables = unknown>({
     setLoading(false);
   };
 
-  const mutate = async (variables: TVariables): Promise<TData> => {
+  const mutate = async (variables: unknown): Promise<TData> => {
     try {
       setLoading(true);
       setError(null);
@@ -42,15 +42,24 @@ export function useMutation<TData = unknown, TVariables = unknown>({
       let result: TData;
       
       switch (method) {
-        case 'POST':
-          result = await apiClient.post<TData>(endpoint, variables);
+        case 'POST': {
+          const response = await apiClient.post<TData>(endpoint, variables);
+          if (!response?.data) throw new Error('No data returned from API');
+          result = response.data;
           break;
-        case 'PUT':
-          result = await apiClient.put<TData>(endpoint, variables);
+        }
+        case 'PUT': {
+          const response = await apiClient.put<TData>(endpoint, variables);
+          if (!response?.data) throw new Error('No data returned from API');
+          result = response.data;
           break;
-        case 'DELETE':
-          result = await apiClient.delete<TData>(endpoint);
+        }
+        case 'DELETE': {
+          const response = await apiClient.delete<TData>(endpoint);
+          if (!response?.data) throw new Error('No data returned from API');
+          result = response.data;
           break;
+        }
         default:
           throw new Error(`Unsupported method: ${method}`);
       }

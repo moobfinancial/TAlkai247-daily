@@ -1,63 +1,44 @@
-import React, { useState, useEffect } from 'react';
-import { Share2, Settings, Mic, Trash2, Play, Command, MicOff, Send, Volume2, Save, X, PhoneOff } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Settings, X, Save, Trash2, Command, PhoneOff, Mic } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/use-toast";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Slider } from "@/components/ui/slider";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Label } from "@/components/ui/label";
 import { cartesiaApi } from '@/services/cartesia';
-import { elevenLabsService } from '@/services/elevenlabs';
-import { playhtApi } from '@/services/playht';
-import { deepgramApi } from '@/services/deepgram';
+import { elevenlabsService } from '@/services/elevenlabs'; 
 import { assistantApi } from '@/services/api';
 import { openRouterApi, Model } from '@/lib/api/openrouter';
 import { Voice } from '@/components/VoiceLibrary/types';
 import ModelSelectionCard from '@/components/LLM/ModelSelectionCard';
-
-interface Assistant {
-  id: string;
-  name: string;
-  firstMessage: string;
-  systemPrompt: string;
-  provider: string;
-  model: string;
-  tools: any[];
-  voice?: {
-    provider: string;
-    voiceId: string;
-    settings: {
-      speed: number;
-      pitch: number;
-      stability: number;
-      volume: number;
-    };
-  };
-}
-
+import { playhtApi } from '@/services/playht';
+import { deepgramApi } from '@/services/deepgram';
+import { Assistant, AssistantTool } from '@/types/schema';
+import { ReactNode } from 'react';
 interface AssistantCardProps {
   assistant: Assistant;
-  onDelete: () => void;
   onUpdate?: (assistant: Assistant) => void;
+  onDelete?: (assistant: Assistant) => void;
 }
 
-export default function AssistantCard({ assistant, onDelete, onUpdate }: AssistantCardProps) {
+export default function AssistantCard({ assistant, onUpdate, onDelete }: AssistantCardProps) {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState('model');
   const [isEditing, setIsEditing] = useState(false);
   const [editedAssistant, setEditedAssistant] = useState(assistant);
-  const [testMessage, setTestMessage] = useState('');
-  const [isListening, setIsListening] = useState(false);
-  const [transcript, setTranscript] = useState<Array<{role: string, content: string}>>([]);
-  const [testing, setTesting] = useState(false);
-  const [voicesByProvider, setVoicesByProvider] = useState<Record<string, Voice[]>>({});
+  const [voicesByProvider, setVoicesByProvider] = useState<Record<string, Voice[]>>({
+    Cartesia: [],
+    elevenlabs: [],
+    PlayHT: [],
+    Deepgram: []
+  });
   const [selectedVoice, setSelectedVoice] = useState<Voice | null>(null);
   const [isInCall, setIsInCall] = useState(false);
   const [models, setModels] = useState<Model[]>([]);
@@ -65,38 +46,10 @@ export default function AssistantCard({ assistant, onDelete, onUpdate }: Assista
   const [modelError, setModelError] = useState<string | null>(null);
   const [isLoadingVoices, setIsLoadingVoices] = useState(false);
 
-  const toggleVoiceInput = () => {
-    setIsListening(!isListening);
-    if (!isListening) {
-      toast({
-        title: "Voice Input Active",
-        description: "Listening for your voice input..."
-      });
-    }
-  };
-
-  const handleTest = async () => {
-    if (!testMessage.trim()) return;
-
-    setTesting(true);
-    setTranscript(prev => [...prev, { role: 'user', content: testMessage }]);
-    
-    // Simulate AI response
-    setTimeout(() => {
-      setTranscript(prev => [...prev, { 
-        role: 'assistant', 
-        content: `I understand you said: "${testMessage}". Here's my response...` 
-      }]);
-      setTestMessage('');
-      setTesting(false);
-    }, 1000);
-  };
-
   const toggleCall = () => {
     setIsInCall(!isInCall);
     if (!isInCall) {
       // Start call
-      setTranscript([]);
       toast({
         title: "Call Started",
         description: "You can now speak with your assistant"
@@ -112,7 +65,16 @@ export default function AssistantCard({ assistant, onDelete, onUpdate }: Assista
 
   // Update editedAssistant when assistant prop changes
   useEffect(() => {
-    setEditedAssistant(assistant);
+    setEditedAssistant({
+      ...assistant,
+      tools: assistant.tools.map(tool => ({
+        id: tool.id || '', 
+        isEnabled: tool.isEnabled || false, 
+        type: tool.type, 
+        name: tool.name || '', 
+        config: tool.config 
+      } as AssistantTool))
+    });
   }, [assistant]);
 
   // Initialize selectedVoice when component mounts or assistant changes
@@ -125,8 +87,8 @@ export default function AssistantCard({ assistant, onDelete, onUpdate }: Assista
             case 'Cartesia':
               voices = await cartesiaApi.getVoices();
               break;
-            case 'ElevenLabs':
-              voices = await elevenLabsService.getVoices();
+            case 'elevenlabs':
+              voices = await elevenlabsService.getVoices();
               break;
             case 'PlayHT':
               voices = await playhtApi.getVoices();
@@ -138,7 +100,7 @@ export default function AssistantCard({ assistant, onDelete, onUpdate }: Assista
               voices = [];
           }
           
-          const voice = voices.find(v => v.id === assistant.voice?.voiceId);
+          const voice = voices.find((v: Voice) => v.id === assistant.voice?.voiceId);
           if (voice) {
             setSelectedVoice(voice);
             setVoicesByProvider(prev => ({
@@ -161,18 +123,30 @@ export default function AssistantCard({ assistant, onDelete, onUpdate }: Assista
       const fetchVoices = async () => {
         setIsLoadingVoices(true);
         try {
-          const [cartesiaVoices, elevenLabsVoices, playhtVoices, deepgramVoices] = await Promise.all([
+          const [cartesiaVoices, elevenlabsVoices, playhtVoices, deepgramVoices] = await Promise.all([
             cartesiaApi.getVoices(),
-            elevenLabsService.getVoices(),
+            elevenlabsService.getVoices(),
             playhtApi.getVoices(),
             deepgramApi.getVoices()
           ]);
 
+          const mapPlayHTVoiceToVoice = (playHTVoice: any): Voice => {
+            return {
+              id: playHTVoice.id,
+              name: playHTVoice.name,
+              gender: playHTVoice.gender,
+              nationality: playHTVoice.nationality,
+              language: playHTVoice.language,
+              traits: playHTVoice.traits,
+              provider: 'playht',
+            };
+          };
+
           const providers = {
-            Cartesia: cartesiaVoices,
-            ElevenLabs: elevenLabsVoices,
-            PlayHT: playhtVoices,
-            Deepgram: deepgramVoices
+            Cartesia: cartesiaVoices.slice(0, 10),
+            elevenlabs: elevenlabsVoices.slice(0, 10).map(mapPlayHTVoiceToVoice),
+            PlayHT: playhtVoices.slice(0, 10).map(mapPlayHTVoiceToVoice),
+            Deepgram: deepgramVoices.slice(0, 10),
           };
 
           setVoicesByProvider(providers);
@@ -223,24 +197,6 @@ export default function AssistantCard({ assistant, onDelete, onUpdate }: Assista
     fetchModels();
   }, [isEditing]);
 
-  const getProviderFromModelId = (modelId: string) => {
-    const [provider] = modelId.split('/');
-    return provider;
-  };
-
-  const getModelsByProvider = () => {
-    const modelsByProvider: Record<string, Model[]> = {};
-    models.forEach(model => {
-      const provider = getProviderFromModelId(model.id);
-      if (!modelsByProvider[provider]) {
-        modelsByProvider[provider] = [];
-      }
-      modelsByProvider[provider].push(model);
-    });
-    return modelsByProvider;
-  };
-
-  // Handle voice selection
   const handleVoiceSelect = (voice: Voice) => {
     console.log('Selected voice:', voice);
     setSelectedVoice(voice);
@@ -261,7 +217,7 @@ export default function AssistantCard({ assistant, onDelete, onUpdate }: Assista
 
   // Handle voice change from dropdown
   const handleVoiceChange = (voiceId: string, provider: string) => {
-    const voice = voicesByProvider[provider]?.find(v => v.id === voiceId);
+    const voice = voicesByProvider[provider]?.find((v: Voice) => v.id === voiceId);
     if (voice) {
       handleVoiceSelect(voice);
     } else {
@@ -296,7 +252,8 @@ export default function AssistantCard({ assistant, onDelete, onUpdate }: Assista
 
   const handleSave = async () => {
     try {
-      const response = await assistantApi.update(editedAssistant.id, editedAssistant);
+      const updatedAssistant = { ...editedAssistant, voice: { ...editedAssistant.voice, settings: { ...editedAssistant.voice.settings, volume: editedAssistant.voice.settings.volume || 0 } } };
+      const response = await assistantApi.update(updatedAssistant.id, updatedAssistant);
       if (response.success && response.data) {
         onUpdate?.(response.data);
         setIsEditing(false);
@@ -318,7 +275,7 @@ export default function AssistantCard({ assistant, onDelete, onUpdate }: Assista
   };
 
   const handleDelete = () => {
-    onDelete(); // This will trigger the delete confirmation dialog in AssistantsTab
+    onDelete?.(assistant); // This will trigger the delete confirmation dialog in AssistantsTab
   };
 
   return (
@@ -404,14 +361,14 @@ export default function AssistantCard({ assistant, onDelete, onUpdate }: Assista
                     models={models}
                     selectedProvider={editedAssistant.provider}
                     selectedModel={editedAssistant.model}
-                    onProviderChange={(provider) => {
+                    onProviderChange={(provider: string) => {
                       setEditedAssistant(prev => ({
                         ...prev,
                         provider,
                         model: '' // Reset model when provider changes
                       }));
                     }}
-                    onModelChange={(model) => {
+                    onModelChange={(model: string) => {
                       setEditedAssistant(prev => ({
                         ...prev,
                         model
@@ -426,7 +383,7 @@ export default function AssistantCard({ assistant, onDelete, onUpdate }: Assista
                     <Label className="text-white">First Message</Label>
                     <Textarea
                       value={editedAssistant.firstMessage}
-                      onChange={(e) => setEditedAssistant(prev => ({ ...prev, firstMessage: e.target.value }))}
+                      onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setEditedAssistant(prev => ({ ...prev, firstMessage: e.target.value }))}
                       className="mt-2 bg-gray-700 text-white border-gray-600 min-h-[100px]"
                       placeholder="Enter the first message your assistant will say..."
                       disabled={!isEditing}
@@ -437,7 +394,7 @@ export default function AssistantCard({ assistant, onDelete, onUpdate }: Assista
                     <Label className="text-white">System Prompt</Label>
                     <Textarea
                       value={editedAssistant.systemPrompt}
-                      onChange={(e) => setEditedAssistant(prev => ({ ...prev, systemPrompt: e.target.value }))}
+                      onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setEditedAssistant(prev => ({ ...prev, systemPrompt: e.target.value }))}
                       className="mt-2 bg-gray-700 text-white border-gray-600 min-h-[100px]"
                       placeholder="Enter the system prompt that defines your assistant's behavior..."
                       disabled={!isEditing}
@@ -476,10 +433,10 @@ export default function AssistantCard({ assistant, onDelete, onUpdate }: Assista
                             <div className="mt-2 flex flex-wrap gap-2">
                               <Badge variant="secondary">{selectedVoice.language}</Badge>
                               {selectedVoice.gender && (
-                                <Badge variant="outline">{selectedVoice.gender}</Badge>
+                                <Badge variant="outline" className="text-xs">{selectedVoice.gender}</Badge>
                               )}
                               {selectedVoice.traits?.map((trait) => (
-                                <Badge key={trait} variant="outline">{trait}</Badge>
+                                <Badge key={trait} variant="outline" className="text-xs">{trait}</Badge>
                               ))}
                             </div>
                           )}
@@ -516,7 +473,7 @@ export default function AssistantCard({ assistant, onDelete, onUpdate }: Assista
                         <Label className="text-white">Voice Provider</Label>
                         <Select
                           value={editedAssistant.voice?.provider || ''}
-                          onValueChange={(provider) => {
+                          onValueChange={(provider: string) => {
                             setEditedAssistant(prev => ({
                               ...prev,
                               voice: {
@@ -553,7 +510,7 @@ export default function AssistantCard({ assistant, onDelete, onUpdate }: Assista
                           <Label className="text-white">Voice</Label>
                           <Select
                             value={editedAssistant.voice.voiceId}
-                            onValueChange={(voiceId) => handleVoiceChange(voiceId, editedAssistant.voice!.provider)}
+                            onValueChange={(voiceId: string) => handleVoiceChange(voiceId, editedAssistant.voice!.provider)}
                           >
                             <SelectTrigger className="bg-gray-700 text-white border-gray-600">
                               <SelectValue placeholder="Select voice">
@@ -562,7 +519,7 @@ export default function AssistantCard({ assistant, onDelete, onUpdate }: Assista
                             </SelectTrigger>
                             <SelectContent>
                               <ScrollArea className="h-[200px]">
-                                {voicesByProvider[editedAssistant.voice.provider]?.map((voice) => (
+                                {voicesByProvider[editedAssistant.voice.provider]?.map((voice: Voice) => (
                                   <SelectItem key={voice.id} value={voice.id}>
                                     <div className="flex flex-col">
                                       <span className="font-medium">{voice.name}</span>
@@ -593,7 +550,7 @@ export default function AssistantCard({ assistant, onDelete, onUpdate }: Assista
                               min={0.25}
                               max={4.0}
                               step={0.25}
-                              onValueChange={([value]) => handleVoiceSettingChange('speed', value)}
+                              onValueChange={([value]: number[]) => handleVoiceSettingChange('speed', value)}
                               className="mt-2"
                             />
                           </div>
@@ -610,7 +567,7 @@ export default function AssistantCard({ assistant, onDelete, onUpdate }: Assista
                               min={0.5}
                               max={2.0}
                               step={0.1}
-                              onValueChange={([value]) => handleVoiceSettingChange('pitch', value)}
+                              onValueChange={([value]: number[]) => handleVoiceSettingChange('pitch', value)}
                               className="mt-2"
                             />
                           </div>
@@ -627,7 +584,7 @@ export default function AssistantCard({ assistant, onDelete, onUpdate }: Assista
                               min={0}
                               max={1}
                               step={0.1}
-                              onValueChange={([value]) => handleVoiceSettingChange('stability', value)}
+                              onValueChange={([value]: number[]) => handleVoiceSettingChange('stability', value)}
                               className="mt-2"
                             />
                           </div>
@@ -636,15 +593,15 @@ export default function AssistantCard({ assistant, onDelete, onUpdate }: Assista
                             <div className="flex justify-between items-center">
                               <Label className="text-white">Volume</Label>
                               <span className="text-sm text-gray-400">
-                                {editedAssistant.voice.settings.volume}%
+                                {editedAssistant.voice.settings.volume}% 
                               </span>
                             </div>
                             <Slider
-                              value={[editedAssistant.voice.settings.volume]}
+                              value={[editedAssistant.voice.settings.volume || 0]}
                               min={0}
                               max={100}
                               step={1}
-                              onValueChange={([value]) => handleVoiceSettingChange('volume', value)}
+                              onValueChange={([value]: number[]) => handleVoiceSettingChange('volume', value)}
                               className="mt-2"
                             />
                           </div>
@@ -673,7 +630,7 @@ export default function AssistantCard({ assistant, onDelete, onUpdate }: Assista
                                 {Object.entries(tool.config).map(([key, value]) => (
                                   <div key={key} className="flex items-center space-x-2">
                                     <span className="text-sm text-gray-400 capitalize">{key}:</span>
-                                    <span className="text-sm text-white">{value as string}</span>
+                                    <span className="text-sm text-white">{value as ReactNode}</span>
                                   </div>
                                 ))}
                               </div>
@@ -710,12 +667,11 @@ export default function AssistantCard({ assistant, onDelete, onUpdate }: Assista
                           setEditedAssistant(prev => {
                             const tools = prev.tools || [];
                             const hasType = tools.some(t => t.type === tool.type);
-                            
                             return {
                               ...prev,
                               tools: hasType
                                 ? tools.filter(t => t.type !== tool.type)
-                                : [...tools, { type: tool.type, name: tool.name, config: {} }]
+                                : [...tools, { type: tool.type, name: tool.name, config: {}, id: crypto.randomUUID(), isEnabled: true } as AssistantTool]
                             };
                           });
                         }}
@@ -753,7 +709,7 @@ export default function AssistantCard({ assistant, onDelete, onUpdate }: Assista
                               <Label>Calendar Provider</Label>
                               <Select
                                 value={tool.config?.provider || ''}
-                                onValueChange={(value) => {
+                                onValueChange={(value: string) => {
                                   setEditedAssistant(prev => ({
                                     ...prev,
                                     tools: prev.tools.map((t, i) =>
@@ -780,7 +736,7 @@ export default function AssistantCard({ assistant, onDelete, onUpdate }: Assista
                               <Label>Base URL</Label>
                               <Input
                                 value={tool.config?.url || ''}
-                                onChange={(e) => {
+                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                                   setEditedAssistant(prev => ({
                                     ...prev,
                                     tools: prev.tools.map((t, i) =>
@@ -802,7 +758,7 @@ export default function AssistantCard({ assistant, onDelete, onUpdate }: Assista
                                 <Input
                                   type="password"
                                   value={tool.config?.apiKey || ''}
-                                  onChange={(e) => {
+                                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                                     setEditedAssistant(prev => ({
                                       ...prev,
                                       tools: prev.tools.map((t, i) =>
@@ -819,7 +775,7 @@ export default function AssistantCard({ assistant, onDelete, onUpdate }: Assista
                                 <Label>From Number</Label>
                                 <Input
                                   value={tool.config?.fromNumber || ''}
-                                  onChange={(e) => {
+                                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                                     setEditedAssistant(prev => ({
                                       ...prev,
                                       tools: prev.tools.map((t, i) =>
@@ -864,39 +820,14 @@ export default function AssistantCard({ assistant, onDelete, onUpdate }: Assista
               </div>
 
               <div className="bg-gray-900/50 rounded-lg p-4 min-h-[300px] max-h-[400px] overflow-y-auto">
-                {transcript.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center h-[300px] text-gray-400">
-                    <Mic className="h-12 w-12 mb-4 opacity-50" />
-                    <p className="text-center">
-                      {isInCall 
-                        ? "Listening... Start speaking to your assistant"
-                        : "Click the microphone button to start a conversation"}
-                    </p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {transcript.map((message, index) => (
-                      <div
-                        key={index}
-                        className={`p-4 rounded-lg ${
-                          message.role === 'user' 
-                            ? 'bg-blue-500/20 ml-12' 
-                            : 'bg-gray-700/50 mr-12'
-                        }`}
-                      >
-                        <div className="flex items-center gap-2 mb-2">
-                          <div className={`w-2 h-2 rounded-full ${
-                            message.role === 'user' ? 'bg-blue-400' : 'bg-green-400'
-                          }`} />
-                          <span className="text-sm text-gray-400">
-                            {message.role === 'user' ? 'You' : 'Assistant'}
-                          </span>
-                        </div>
-                        <p className="text-white">{message.content}</p>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                <div className="flex flex-col items-center justify-center h-[300px] text-gray-400">
+                  <Mic className="h-12 w-12 mb-4 opacity-50" />
+                  <p className="text-center">
+                    {isInCall 
+                      ? "Listening... Start speaking to your assistant"
+                      : "Click the microphone button to start a conversation"}
+                  </p>
+                </div>
               </div>
 
               {isInCall && (

@@ -12,6 +12,9 @@
     "db:migrate": "prisma migrate deploy",
     "db:seed": "prisma db seed"
   },
+  "prisma": {
+    "seed": "node prisma/seed.js"
+  },
   "dependencies": {
     "@deepgram/sdk": "^3.0.0",
     "@prisma/client": "^6.0.1",

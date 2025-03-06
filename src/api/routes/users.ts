@@ -1,10 +1,40 @@
 import { Router } from 'express';
-import { prisma } from '@/lib/prisma';
-import { validateUser } from '@/lib/validation';
-import type { User } from '@/types/schema';
-import type { ApiResponse, PaginatedResponse } from '@/types/schema';
+import { prisma } from '../../lib/prisma';
+import { validateUser } from '../../lib/validation';
+import type { User } from '../../types/schema';
+import type { ApiResponse, PaginatedResponse } from '../../types/schema';
+import { Prisma, UserRole } from '@prisma/client';
+import { z } from 'zod';
+
+// Define the ValidationResult type to match what's in validation/index.ts
+type ValidationResult<T> = {
+  success: boolean;
+  data?: T;
+  errors?: z.ZodError;
+};
+
+// Extend Express Request interface to include user property
+declare global {
+  namespace Express {
+    interface Request {
+      user?: {
+        id: string;
+        [key: string]: any;
+      };
+    }
+  }
+}
 
 const router = Router();
+
+// Map Prisma enum values to schema string literals
+const mapUserRole = (role: UserRole): 'admin' | 'user' => {
+  const roleMap: Record<UserRole, 'admin' | 'user'> = {
+    [UserRole.ADMIN]: 'admin',
+    [UserRole.USER]: 'user'
+  };
+  return roleMap[role];
+};
 
 // Get paginated users
 router.get('/', async (req, res) => {
@@ -12,10 +42,10 @@ router.get('/', async (req, res) => {
     const { page = 1, pageSize = 10, search } = req.query;
     const skip = (Number(page) - 1) * Number(pageSize);
 
-    const where = search ? {
+    const where: Prisma.UserWhereInput = search ? {
       OR: [
-        { name: { contains: String(search), mode: 'insensitive' } },
-        { email: { contains: String(search), mode: 'insensitive' } },
+        { name: { contains: String(search), mode: 'insensitive' as Prisma.QueryMode } },
+        { email: { contains: String(search), mode: 'insensitive' as Prisma.QueryMode } },
       ],
     } : {};
 
@@ -32,7 +62,36 @@ router.get('/', async (req, res) => {
     const response: ApiResponse<PaginatedResponse<User>> = {
       success: true,
       data: {
-        items: users,
+        items: users.map(user => {
+          // Create a properly typed user object
+          const typedUser: User = {
+            ...user,
+            company: user.company || undefined,
+            phoneNumber: user.phoneNumber || undefined,
+            role: mapUserRole(user.role),
+            settings: {
+              defaultTransparencyLevel: user.settings && typeof user.settings === 'object' && 'defaultTransparencyLevel' in user.settings
+                ? String(user.settings.defaultTransparencyLevel) === 'full' ? 'full' 
+                : String(user.settings.defaultTransparencyLevel) === 'partial' ? 'partial' 
+                : 'none'
+                : 'none',
+              defaultAssistant: user.settings && typeof user.settings === 'object' && 'defaultAssistant' in user.settings
+                ? String(user.settings.defaultAssistant || '') || undefined
+                : undefined,
+              recordingEnabled: user.settings && typeof user.settings === 'object' && 'recordingEnabled' in user.settings
+                ? Boolean(user.settings.recordingEnabled)
+                : false,
+              webSearchEnabled: user.settings && typeof user.settings === 'object' && 'webSearchEnabled' in user.settings
+                ? Boolean(user.settings.webSearchEnabled)
+                : false,
+              preferredVoice: user.settings && typeof user.settings === 'object' && 'preferredVoice' in user.settings
+                ? String(user.settings.preferredVoice) === 'female' ? 'female' : 'male'
+                : 'male'
+            }
+          };
+          
+          return typedUser;
+        }),
         total,
         page: Number(page),
         pageSize: Number(pageSize),
@@ -89,7 +148,9 @@ router.get('/:id', async (req, res) => {
 // Create new user
 router.post('/', async (req, res) => {
   try {
-    const validation = validateUser(req.body);
+    // Use type assertion to ensure TypeScript knows the shape of validation
+    const validation = validateUser(req.body) as ValidationResult<any>;
+    
     if (!validation.success) {
       return res.status(400).json({
         success: false,
@@ -124,7 +185,9 @@ router.post('/', async (req, res) => {
 // Update user
 router.put('/:id', async (req, res) => {
   try {
-    const validation = validateUser(req.body);
+    // Use type assertion to ensure TypeScript knows the shape of validation
+    const validation = validateUser(req.body) as ValidationResult<any>;
+    
     if (!validation.success) {
       return res.status(400).json({
         success: false,

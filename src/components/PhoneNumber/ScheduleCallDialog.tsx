@@ -38,7 +38,7 @@ export function ScheduleCallDialog({
             <Calendar
               mode="single"
               selected={scheduleDate}
-              onSelect={(date) => {}}
+              onSelect={(_date) => {/* Will be handled by parent component */}}
               className="rounded-md border bg-gray-700"
             />
           </div>
